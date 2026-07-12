@@ -88,7 +88,7 @@ Lorsqu'un colis est livré, il peut être archivé :
 
 ### Providers implémentés
 
-Cinq providers sont implémentés : **La Poste** (Colissimo, Chronopost, courrier suivi), **FedEx**, **DHL**, **UPS** et **Mondial Relay**.
+Six providers sont implémentés : **La Poste** (Colissimo, Chronopost, courrier suivi), **FedEx**, **DHL**, **UPS**, **Mondial Relay** et **PostNord**.
 
 ```text
 TrackingProvider
@@ -96,7 +96,8 @@ TrackingProvider
     ├── FedEx           (Track API v1, OAuth2 client_credentials)
     ├── DHL              (Unified Tracking API, clé API)
     ├── UPS              (Track API v1, OAuth2 client_credentials)
-    └── Mondial Relay    (webservice WSI2, login + clé privée signée)
+    ├── Mondial Relay    (webservice WSI2, login + clé privée signée)
+    └── PostNord         (Track & Trace API v5, clé API)
 ```
 
 Support (variable selon les données exposées par chaque API) :
@@ -136,6 +137,7 @@ Création de la config entry
 | DHL             | Clé API                                            | Clé API en en-tête                |
 | UPS             | Client ID + Client secret                          | OAuth2 client_credentials         |
 | Mondial Relay   | Login (Enseigne) + Clé privée                      | Hash MD5 signé (webservice WSI2)  |
+| PostNord        | Clé API                                            | Clé API en paramètre de requête   |
 
 Aucune clé n'est fournie ou partagée par le projet — cohérent avec « sans cloud propriétaire » : pas de quota mutualisé entre utilisateurs, pas de dépendance à un service tiers géré par le projet. Les identifiants d'un ou plusieurs transporteurs peuvent être ajoutés ou corrigés après la création de l'intégration via **Reconfigurer** (Paramètres → Appareils et services → Parcel Tracker).
 
@@ -374,7 +376,8 @@ custom_components/
     │   ├── fedex.py
     │   ├── dhl.py
     │   ├── ups.py
-    │   └── mondial_relay.py
+    │   ├── mondial_relay.py
+    │   └── postnord.py
     ├── parcel.py             # modèle de données d'un colis (id, tracking_number, carrier, ...)
     ├── storage.py             # persistance .storage/parcel_tracker
     ├── services.py            # add / remove / refresh / archive / get_history
@@ -406,6 +409,7 @@ TrackingProvider
     ├── DHL
     ├── UPS
     ├── Mondial Relay
+    ├── PostNord
     └── ... (GLS, DPD, Amazon Logistics — non implémentés)
 ```
 
@@ -427,7 +431,7 @@ Un provider n'est instancié que si ses identifiants sont configurés (voir [Aut
 
 ### V2 (en cours)
 
-* ✅ Providers supplémentaires : FedEx, DHL, UPS, Mondial Relay
+* ✅ Providers supplémentaires : FedEx, DHL, UPS, Mondial Relay, PostNord
 * ✅ Sélection du transporteur à l'ajout/modification d'un colis (UI et services)
 * ✅ Identifiants par transporteur optionnels et modifiables après coup (`Reconfigurer`)
 * Providers restants : GLS, DPD

@@ -21,6 +21,7 @@ from .const import (
     CONF_FEDEX_CLIENT_SECRET,
     CONF_MONDIAL_RELAY_LOGIN,
     CONF_MONDIAL_RELAY_PRIVATE_KEY,
+    CONF_POSTNORD_API_KEY,
     CONF_UPS_CLIENT_ID,
     CONF_UPS_CLIENT_SECRET,
     DOMAIN,
@@ -54,6 +55,7 @@ CARRIER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_UPS_CLIENT_SECRET, default=""): _PASSWORD_SELECTOR,
         vol.Optional(CONF_MONDIAL_RELAY_LOGIN, default=""): str,
         vol.Optional(CONF_MONDIAL_RELAY_PRIVATE_KEY, default=""): _PASSWORD_SELECTOR,
+        vol.Optional(CONF_POSTNORD_API_KEY, default=""): _PASSWORD_SELECTOR,
     }
 )
 

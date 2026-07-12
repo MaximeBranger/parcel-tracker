@@ -11,6 +11,7 @@ from ..const import (
     CARRIER_FEDEX,
     CARRIER_LAPOSTE,
     CARRIER_MONDIAL_RELAY,
+    CARRIER_POSTNORD,
     CARRIER_UPS,
     CONF_API_KEY,
     CONF_DHL_API_KEY,
@@ -18,6 +19,7 @@ from ..const import (
     CONF_FEDEX_CLIENT_SECRET,
     CONF_MONDIAL_RELAY_LOGIN,
     CONF_MONDIAL_RELAY_PRIVATE_KEY,
+    CONF_POSTNORD_API_KEY,
     CONF_UPS_CLIENT_ID,
     CONF_UPS_CLIENT_SECRET,
 )
@@ -26,6 +28,7 @@ from .dhl import DhlProvider
 from .fedex import FedExProvider
 from .laposte import LaPosteProvider
 from .mondial_relay import MondialRelayProvider
+from .postnord import PostNordProvider
 from .ups import UpsProvider
 
 # The config keys each carrier needs, in the order its provider's
@@ -36,6 +39,7 @@ CARRIER_CONFIG_KEYS: dict[str, tuple[str, ...]] = {
     CARRIER_DHL: (CONF_DHL_API_KEY,),
     CARRIER_UPS: (CONF_UPS_CLIENT_ID, CONF_UPS_CLIENT_SECRET),
     CARRIER_MONDIAL_RELAY: (CONF_MONDIAL_RELAY_LOGIN, CONF_MONDIAL_RELAY_PRIVATE_KEY),
+    CARRIER_POSTNORD: (CONF_POSTNORD_API_KEY,),
 }
 
 _PROVIDER_CLASSES: dict[str, Callable[..., TrackingProvider]] = {
@@ -44,6 +48,7 @@ _PROVIDER_CLASSES: dict[str, Callable[..., TrackingProvider]] = {
     CARRIER_DHL: DhlProvider,
     CARRIER_UPS: UpsProvider,
     CARRIER_MONDIAL_RELAY: MondialRelayProvider,
+    CARRIER_POSTNORD: PostNordProvider,
 }
 
 
