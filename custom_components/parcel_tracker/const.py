@@ -8,11 +8,39 @@ DOMAIN = "parcel_tracker"
 PLATFORMS = ["sensor"]
 
 CONF_API_KEY = "api_key"
+CONF_FEDEX_CLIENT_ID = "fedex_client_id"
+CONF_FEDEX_CLIENT_SECRET = "fedex_client_secret"
+CONF_DHL_API_KEY = "dhl_api_key"
+CONF_UPS_CLIENT_ID = "ups_client_id"
+CONF_UPS_CLIENT_SECRET = "ups_client_secret"
+CONF_MONDIAL_RELAY_LOGIN = "mondial_relay_login"
+CONF_MONDIAL_RELAY_PRIVATE_KEY = "mondial_relay_private_key"
 
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=15)
 
-# Carriers (MVP: La Poste only, field kept for forward compatibility with V2)
+# Carriers. Each maps to a provider in providers/registry.py, which also
+# defines which of the CONF_* keys above are required to enable it.
 CARRIER_LAPOSTE = "laposte"
+CARRIER_FEDEX = "fedex"
+CARRIER_DHL = "dhl"
+CARRIER_UPS = "ups"
+CARRIER_MONDIAL_RELAY = "mondial_relay"
+
+ALL_CARRIERS = [
+    CARRIER_LAPOSTE,
+    CARRIER_FEDEX,
+    CARRIER_DHL,
+    CARRIER_UPS,
+    CARRIER_MONDIAL_RELAY,
+]
+
+CARRIER_LABELS: dict[str, str] = {
+    CARRIER_LAPOSTE: "La Poste",
+    CARRIER_FEDEX: "FedEx",
+    CARRIER_DHL: "DHL",
+    CARRIER_UPS: "UPS",
+    CARRIER_MONDIAL_RELAY: "Mondial Relay",
+}
 
 # Parcel statuses, as listed in SPECIFICATIONS.md.
 STATUS_CREATED = "created"

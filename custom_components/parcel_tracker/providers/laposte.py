@@ -7,7 +7,8 @@ from typing import Any
 
 import aiohttp
 
-from .const import (
+from ..const import (
+    CARRIER_LAPOSTE,
     STATUS_AT_SORTING_CENTER,
     STATUS_CREATED,
     STATUS_DELIVERED,
@@ -16,6 +17,12 @@ from .const import (
     STATUS_OUT_FOR_DELIVERY,
     STATUS_RETURNED_TO_SENDER,
     STATUS_TAKEN_IN_CHARGE,
+)
+from .base import (
+    ParcelTrackerApiError,
+    ParcelTrackerAuthError,
+    ParcelTrackerNotFoundError,
+    TrackingProvider,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,26 +59,16 @@ TIMELINE_STATUS_MAP: dict[str, str] = {
 }
 
 
-class ParcelTrackerApiError(Exception):
-    """Base error for the La Poste API client."""
-
-
-class ParcelTrackerAuthError(ParcelTrackerApiError):
-    """Raised when the API key is rejected."""
-
-
-class ParcelTrackerNotFoundError(ParcelTrackerApiError):
-    """Raised when the tracking number is unknown to the provider."""
-
-
-class ParcelTrackerApiClient:
+class LaPosteProvider(TrackingProvider):
     """Minimal client for the La Poste Suivi API."""
+
+    carrier = CARRIER_LAPOSTE
 
     def __init__(self, api_key: str, session: aiohttp.ClientSession) -> None:
         self._api_key = api_key
         self._session = session
 
-    async def async_validate_api_key(self) -> None:
+    async def async_validate_credentials(self) -> None:
         """Raise if the configured API key is rejected by La Poste."""
         await self.async_track(TEST_TRACKING_NUMBER)
 

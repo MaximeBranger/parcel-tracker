@@ -3,27 +3,57 @@
     "step": {
       "user": {
         "title": "Parcel Tracker",
-        "description": "Saisissez votre clé API Suivi La Poste.",
+        "description": "Saisissez les identifiants API des transporteurs à suivre. Chaque transporteur est optionnel, mais au moins un est requis.",
         "data": {
-          "api_key": "Clé API"
+          "api_key": "Clé API La Poste",
+          "fedex_client_id": "Identifiant client FedEx",
+          "fedex_client_secret": "Clé secrète client FedEx",
+          "dhl_api_key": "Clé API DHL",
+          "ups_client_id": "Identifiant client UPS",
+          "ups_client_secret": "Clé secrète client UPS",
+          "mondial_relay_login": "Identifiant Mondial Relay (Enseigne)",
+          "mondial_relay_private_key": "Clé privée Mondial Relay"
         }
       },
       "reauth_confirm": {
         "title": "Ré-authentification Parcel Tracker",
-        "description": "Votre clé API La Poste a été refusée. Saisissez une clé valide.",
+        "description": "Un ou plusieurs identifiants transporteur ont été refusés. Corrigez-les ci-dessous.",
         "data": {
-          "api_key": "Clé API"
+          "api_key": "Clé API La Poste",
+          "fedex_client_id": "Identifiant client FedEx",
+          "fedex_client_secret": "Clé secrète client FedEx",
+          "dhl_api_key": "Clé API DHL",
+          "ups_client_id": "Identifiant client UPS",
+          "ups_client_secret": "Clé secrète client UPS",
+          "mondial_relay_login": "Identifiant Mondial Relay (Enseigne)",
+          "mondial_relay_private_key": "Clé privée Mondial Relay"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurer Parcel Tracker",
+        "description": "Ajoutez ou mettez à jour les identifiants API des transporteurs.",
+        "data": {
+          "api_key": "Clé API La Poste",
+          "fedex_client_id": "Identifiant client FedEx",
+          "fedex_client_secret": "Clé secrète client FedEx",
+          "dhl_api_key": "Clé API DHL",
+          "ups_client_id": "Identifiant client UPS",
+          "ups_client_secret": "Clé secrète client UPS",
+          "mondial_relay_login": "Identifiant Mondial Relay (Enseigne)",
+          "mondial_relay_private_key": "Clé privée Mondial Relay"
         }
       }
     },
     "error": {
-      "invalid_auth": "Clé API invalide",
-      "cannot_connect": "Impossible de joindre l'API La Poste",
-      "unknown": "Erreur inattendue de l'API La Poste"
+      "invalid_auth": "Identifiants invalides ou refusés",
+      "cannot_connect": "Impossible de joindre l'API du transporteur",
+      "unknown": "Erreur inattendue de l'API du transporteur",
+      "at_least_one_required": "Saisissez les identifiants d'au moins un transporteur"
     },
     "abort": {
       "already_configured": "Parcel Tracker est déjà configuré",
-      "reauth_successful": "Ré-authentification réussie"
+      "reauth_successful": "Ré-authentification réussie",
+      "reconfigure_successful": "Parcel Tracker a été reconfiguré"
     }
   },
   "options": {
@@ -39,6 +69,7 @@
         "title": "Ajouter un colis",
         "data": {
           "tracking_number": "Numéro de suivi",
+          "carrier": "Transporteur",
           "name": "Nom",
           "notes": "Notes"
         }
@@ -62,6 +93,7 @@
         "title": "Modifier {parcel_name}",
         "data": {
           "tracking_number": "Numéro de suivi",
+          "carrier": "Transporteur",
           "name": "Nom",
           "notes": "Notes"
         }

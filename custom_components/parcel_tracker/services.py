@@ -8,7 +8,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
+from .const import ALL_CARRIERS, CARRIER_LAPOSTE, DOMAIN
 from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
 
 SERVICE_ADD = "add"
@@ -21,6 +21,7 @@ SERVICE_GET_HISTORY = "get_history"
 ADD_SCHEMA = vol.Schema(
     {
         vol.Required("tracking_number"): cv.string,
+        vol.Optional("carrier", default=CARRIER_LAPOSTE): vol.In(ALL_CARRIERS),
         vol.Optional("name", default=""): cv.string,
         vol.Optional("notes", default=""): cv.string,
     }
@@ -29,6 +30,7 @@ UPDATE_SCHEMA = vol.Schema(
     {
         vol.Required("parcel_id"): cv.string,
         vol.Optional("tracking_number"): cv.string,
+        vol.Optional("carrier"): vol.In(ALL_CARRIERS),
         vol.Optional("name"): cv.string,
         vol.Optional("notes"): cv.string,
     }
@@ -63,6 +65,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator(hass)
         await coordinator.async_add_parcel(
             tracking_number=call.data["tracking_number"],
+            carrier=call.data["carrier"],
             name=call.data["name"],
             notes=call.data["notes"],
         )
@@ -74,6 +77,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             await coordinator.async_update_parcel(
                 call.data["parcel_id"],
                 tracking_number=call.data.get("tracking_number"),
+                carrier=call.data.get("carrier"),
                 name=call.data.get("name"),
                 notes=call.data.get("notes"),
             )

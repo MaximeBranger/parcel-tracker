@@ -6,6 +6,15 @@ add:
       required: true
       selector:
         text:
+    carrier:
+      selector:
+        select:
+          options:
+            - "laposte"
+            - "fedex"
+            - "dhl"
+            - "ups"
+            - "mondial_relay"
     name:
       selector:
         text:
@@ -14,7 +23,7 @@ add:
         text:
 update:
   name: Update parcel
-  description: Edit a tracked parcel's name, notes and/or tracking number without recreating its entity.
+  description: Edit a tracked parcel's name, notes, carrier and/or tracking number without recreating its entity.
   fields:
     parcel_id:
       required: true
@@ -23,6 +32,15 @@ update:
     tracking_number:
       selector:
         text:
+    carrier:
+      selector:
+        select:
+          options:
+            - "laposte"
+            - "fedex"
+            - "dhl"
+            - "ups"
+            - "mondial_relay"
     name:
       selector:
         text:

@@ -7,19 +7,13 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .api import (
-    ParcelTrackerApiClient,
-    ParcelTrackerApiError,
-    ParcelTrackerAuthError,
-)
 from .const import (
-    CONF_API_KEY,
+    CARRIER_LAPOSTE,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     EVENT_PARCEL_ADDED,
@@ -34,6 +28,7 @@ from .const import (
     STATUS_RETURNED_TO_SENDER,
 )
 from .parcel import Parcel
+from .providers import ParcelTrackerApiError, TrackingProvider, build_providers
 from .storage import ParcelStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,8 +56,8 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             update_interval=DEFAULT_UPDATE_INTERVAL,
         )
         self.entry = entry
-        self.api = ParcelTrackerApiClient(
-            entry.data[CONF_API_KEY], async_get_clientsession(hass)
+        self.providers: dict[str, TrackingProvider] = build_providers(
+            entry.data, async_get_clientsession(hass)
         )
         self.storage = ParcelStorage(hass)
         self._parcels: dict[str, Parcel] = {}
@@ -90,11 +85,32 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         return self._parcels
 
     async def _async_refresh_parcel(self, parcel: Parcel) -> None:
-        """Refresh a single parcel, isolating per-parcel provider errors."""
+        """Refresh a single parcel, isolating per-parcel provider errors.
+
+        A bad or expired key for one carrier must not affect parcels
+        tracked with other carriers, so provider lookup and auth failures
+        are reported the same way as any other per-parcel API error
+        (`parcel_error` event) instead of failing the whole config entry.
+        """
+        provider = self.providers.get(parcel.carrier)
+        if provider is None:
+            _LOGGER.warning(
+                "No provider configured for carrier %r (parcel %s)",
+                parcel.carrier,
+                parcel.display_name,
+            )
+            self.hass.bus.async_fire(
+                EVENT_PARCEL_ERROR,
+                {
+                    "parcel_id": parcel.id,
+                    "tracking_number": parcel.tracking_number,
+                    "error": f"No provider configured for carrier {parcel.carrier}",
+                },
+            )
+            return
+
         try:
-            result = await self.api.async_track(parcel.tracking_number)
-        except ParcelTrackerAuthError as err:
-            raise ConfigEntryAuthFailed("Invalid La Poste API key") from err
+            result = await provider.async_track(parcel.tracking_number)
         except ParcelTrackerApiError as err:
             _LOGGER.warning(
                 "Error refreshing parcel %s (%s): %s",
@@ -157,11 +173,16 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
     # -- Lifecycle, called from services.py ---------------------------------
 
     async def async_add_parcel(
-        self, tracking_number: str, name: str = "", notes: str = ""
+        self,
+        tracking_number: str,
+        name: str = "",
+        notes: str = "",
+        carrier: str = CARRIER_LAPOSTE,
     ) -> Parcel:
         """Add a new parcel and start tracking it immediately."""
         parcel = Parcel(
             tracking_number=tracking_number,
+            carrier=carrier,
             name=name,
             notes=notes,
             created_at=datetime.now(timezone.utc).isoformat(),
@@ -198,6 +219,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         tracking_number: str | None = None,
         name: str | None = None,
         notes: str | None = None,
+        carrier: str | None = None,
     ) -> Parcel:
         """Edit a tracked parcel's editable fields.
 
@@ -206,17 +228,19 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         "Identité de l'entité").
         """
         parcel = self._get_parcel(parcel_id)
-        tracking_number_changed = (
+        needs_refresh = (
             tracking_number is not None and tracking_number != parcel.tracking_number
-        )
+        ) or (carrier is not None and carrier != parcel.carrier)
         if tracking_number is not None:
             parcel.tracking_number = tracking_number
+        if carrier is not None:
+            parcel.carrier = carrier
         if name is not None:
             parcel.name = name
         if notes is not None:
             parcel.notes = notes
 
-        if tracking_number_changed and not parcel.archived:
+        if needs_refresh and not parcel.archived:
             await self._async_refresh_parcel(parcel)
         await self.storage.async_save(self._parcels)
 
