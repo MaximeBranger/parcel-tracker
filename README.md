@@ -1,5 +1,8 @@
 # Parcel Tracker
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Validate](https://github.com/MaximeBranger/parcel-tracker/actions/workflows/validate.yaml/badge.svg)](https://github.com/MaximeBranger/parcel-tracker/actions/workflows/validate.yaml)
+
 Intégration Home Assistant distribuée via [HACS](https://hacs.xyz) permettant de centraliser le suivi de tous vos colis, quel que soit le transporteur.
 
 Le MVP fonctionne de manière autonome, sans service externe : il interroge directement l'API de La Poste (Colissimo, Chronopost, lettre suivie) et stocke les données localement dans `.storage/`.
