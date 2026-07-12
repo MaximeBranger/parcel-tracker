@@ -12,6 +12,23 @@ add:
     notes:
       selector:
         text:
+update:
+  name: Update parcel
+  description: Edit a tracked parcel's name, notes and/or tracking number without recreating its entity.
+  fields:
+    parcel_id:
+      required: true
+      selector:
+        text:
+    tracking_number:
+      selector:
+        text:
+    name:
+      selector:
+        text:
+    notes:
+      selector:
+        text:
 remove:
   name: Remove parcel
   description: Permanently remove a tracked parcel.

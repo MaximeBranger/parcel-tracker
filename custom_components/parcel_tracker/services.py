@@ -12,6 +12,7 @@ from .const import DOMAIN
 from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
 
 SERVICE_ADD = "add"
+SERVICE_UPDATE = "update"
 SERVICE_REMOVE = "remove"
 SERVICE_REFRESH = "refresh"
 SERVICE_ARCHIVE = "archive"
@@ -22,6 +23,14 @@ ADD_SCHEMA = vol.Schema(
         vol.Required("tracking_number"): cv.string,
         vol.Optional("name", default=""): cv.string,
         vol.Optional("notes", default=""): cv.string,
+    }
+)
+UPDATE_SCHEMA = vol.Schema(
+    {
+        vol.Required("parcel_id"): cv.string,
+        vol.Optional("tracking_number"): cv.string,
+        vol.Optional("name"): cv.string,
+        vol.Optional("notes"): cv.string,
     }
 )
 PARCEL_ID_SCHEMA = vol.Schema({vol.Required("parcel_id"): cv.string})
@@ -58,6 +67,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             notes=call.data["notes"],
         )
 
+    async def async_update(call: ServiceCall) -> None:
+        """Edit a tracked parcel's name, notes and/or tracking number."""
+        coordinator = _get_coordinator(hass)
+        try:
+            await coordinator.async_update_parcel(
+                call.data["parcel_id"],
+                tracking_number=call.data.get("tracking_number"),
+                name=call.data.get("name"),
+                notes=call.data.get("notes"),
+            )
+        except ParcelNotFoundError as err:
+            raise HomeAssistantError(str(err)) from err
+
     async def async_remove(call: ServiceCall) -> None:
         """Permanently remove a tracked parcel."""
         coordinator = _get_coordinator(hass)
@@ -92,6 +114,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     hass.services.async_register(DOMAIN, SERVICE_ADD, async_add, schema=ADD_SCHEMA)
     hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE, async_update, schema=UPDATE_SCHEMA
+    )
+    hass.services.async_register(
         DOMAIN, SERVICE_REMOVE, async_remove, schema=PARCEL_ID_SCHEMA
     )
     hass.services.async_register(DOMAIN, SERVICE_REFRESH, async_refresh)
@@ -111,6 +136,7 @@ def async_unload_services(hass: HomeAssistant) -> None:
     """Remove all parcel_tracker services (last config entry unloaded)."""
     for service in (
         SERVICE_ADD,
+        SERVICE_UPDATE,
         SERVICE_REMOVE,
         SERVICE_REFRESH,
         SERVICE_ARCHIVE,

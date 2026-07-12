@@ -63,9 +63,12 @@ Au premier lancement, l'assistant de configuration se termine sur `http://localh
 
 Dans l'interface : **Paramètres → Appareils et services → Ajouter une intégration → Parcel Tracker**, puis saisissez votre clé API La Poste. La clé est validée par un appel de test au moment de la soumission (voir `config_flow.py`) ; une clé invalide affiche une erreur sans créer l'entrée.
 
-### 6. Piloter les colis via les services
+### 6. Piloter les colis
 
-Comme les colis ne passent pas par un flow de configuration mais par les services (`parcel_tracker.add`, `.remove`, `.archive`, `.refresh`, `.get_history`), le plus simple pour tester est **Outils de développement → Actions** :
+Les colis ne passent pas par un flow de configuration séparé (une seule config entry par installation), mais peuvent être gérés de deux façons équivalentes :
+
+* **Interface** : **Paramètres → Appareils et services → Parcel Tracker → Configurer** ouvre un menu permettant d'ajouter un colis, puis de le modifier (nom, notes, numéro de suivi — sans recréer son entité ni son historique), de l'archiver ou de le supprimer.
+* **Services**, pour l'automatisation ou les tests rapides via **Outils de développement → Actions** : `parcel_tracker.add`, `.update`, `.remove`, `.archive`, `.refresh`, `.get_history`.
 
 ```yaml
 action: parcel_tracker.add

@@ -295,9 +295,14 @@ Ces capteurs ne comptent que les colis **non archivés**.
 
 ---
 
+## Interface de gestion
+
+En plus des services, un menu accessible via **Paramètres → Appareils et services → Parcel Tracker → Configurer** (options flow) permet d'ajouter, modifier, archiver ou supprimer un colis sans passer par Outils de développement ou une automatisation. Les deux surfaces appellent le même coordinator et respectent la même identité d'entité (voir [Identité de l'entité](#identité-de-lentité)).
+
 ## Services Home Assistant
 
 * `parcel_tracker.add`
+* `parcel_tracker.update` — modifie le nom, les notes et/ou le numéro de suivi d'un colis existant sans recréer son entité
 * `parcel_tracker.remove`
 * `parcel_tracker.refresh`
 * `parcel_tracker.archive`

@@ -26,6 +26,56 @@
       "reauth_successful": "Re-authentication was successful"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage parcels",
+        "menu_options": {
+          "add_parcel": "Add a parcel",
+          "select_parcel": "Edit, archive or remove a parcel"
+        }
+      },
+      "add_parcel": {
+        "title": "Add a parcel",
+        "data": {
+          "tracking_number": "Tracking number",
+          "name": "Name",
+          "notes": "Notes"
+        }
+      },
+      "select_parcel": {
+        "title": "Select a parcel",
+        "data": {
+          "parcel_id": "Parcel"
+        }
+      },
+      "parcel_menu": {
+        "title": "{parcel_name}",
+        "menu_options": {
+          "edit_parcel": "Edit",
+          "archive_parcel": "Archive",
+          "remove_parcel": "Remove",
+          "init": "Back"
+        }
+      },
+      "edit_parcel": {
+        "title": "Edit {parcel_name}",
+        "data": {
+          "tracking_number": "Tracking number",
+          "name": "Name",
+          "notes": "Notes"
+        }
+      },
+      "archive_parcel": {
+        "title": "Archive {parcel_name}?",
+        "description": "The parcel keeps its history but leaves the active sensors and dashboards. It can only be seen again through the get_history action."
+      },
+      "remove_parcel": {
+        "title": "Remove {parcel_name}?",
+        "description": "This permanently deletes the parcel and its entity. This cannot be undone."
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "parcel": {

@@ -8,13 +8,24 @@ import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ParcelTrackerApiClient, ParcelTrackerApiError, ParcelTrackerAuthError
 from .const import CONF_API_KEY, DOMAIN
+from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
 
 STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_API_KEY): str})
+
+PARCEL_FIELDS_SCHEMA = vol.Schema(
+    {
+        vol.Required("tracking_number"): str,
+        vol.Optional("name", default=""): str,
+        vol.Optional("notes", default=""): str,
+    }
+)
 
 
 class ParcelTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -79,3 +90,172 @@ class ParcelTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         except ParcelTrackerApiError:
             return {"base": "unknown"}
         return {}
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> ParcelTrackerOptionsFlow:
+        """Return the options flow used to manage tracked parcels."""
+        return ParcelTrackerOptionsFlow(config_entry)
+
+
+class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
+    """Manage tracked parcels from Settings → Devices & services → Configure.
+
+    Parcels are not config entries — the single entry only ever holds the
+    API key (SPECIFICATIONS.md) — so this flow reads and mutates the
+    coordinator's in-memory parcel list directly instead of storing config
+    entry options.
+    """
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize the options flow."""
+        self.config_entry = config_entry
+        self._parcel_id: str | None = None
+
+    @property
+    def _coordinator(self) -> ParcelTrackerCoordinator:
+        return self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show the top-level menu: add a parcel, or manage existing ones."""
+        menu_options = ["add_parcel"]
+        if any(not parcel.archived for parcel in self._coordinator.data.values()):
+            menu_options.append("select_parcel")
+        return self.async_show_menu(step_id="init", menu_options=menu_options)
+
+    async def async_step_add_parcel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Track a new parcel."""
+        if user_input is not None:
+            await self._coordinator.async_add_parcel(
+                tracking_number=user_input["tracking_number"],
+                name=user_input["name"],
+                notes=user_input["notes"],
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="add_parcel", data_schema=PARCEL_FIELDS_SCHEMA
+        )
+
+    async def async_step_select_parcel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Pick which active parcel to edit, archive or remove."""
+        if user_input is not None:
+            self._parcel_id = user_input["parcel_id"]
+            return await self.async_step_parcel_menu()
+
+        options = [
+            selector.SelectOptionDict(
+                value=parcel_id,
+                label=f"{parcel.display_name} ({parcel.tracking_number})",
+            )
+            for parcel_id, parcel in self._coordinator.data.items()
+            if not parcel.archived
+        ]
+        return self.async_show_form(
+            step_id="select_parcel",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("parcel_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(options=options)
+                    )
+                }
+            ),
+        )
+
+    async def async_step_parcel_menu(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show what can be done with the parcel selected in the previous step."""
+        try:
+            parcel = self._selected_parcel()
+        except ParcelNotFoundError:
+            return await self.async_step_init()
+
+        return self.async_show_menu(
+            step_id="parcel_menu",
+            menu_options=["edit_parcel", "archive_parcel", "remove_parcel", "init"],
+            description_placeholders={"parcel_name": parcel.display_name},
+        )
+
+    async def async_step_edit_parcel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Edit the name, notes and/or tracking number of the selected parcel."""
+        try:
+            parcel = self._selected_parcel()
+        except ParcelNotFoundError:
+            return await self.async_step_init()
+
+        if user_input is not None:
+            await self._coordinator.async_update_parcel(
+                parcel.id,
+                tracking_number=user_input["tracking_number"],
+                name=user_input["name"],
+                notes=user_input["notes"],
+            )
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="edit_parcel",
+            data_schema=self.add_suggested_values_to_schema(
+                PARCEL_FIELDS_SCHEMA,
+                {
+                    "tracking_number": parcel.tracking_number,
+                    "name": parcel.name,
+                    "notes": parcel.notes,
+                },
+            ),
+            description_placeholders={"parcel_name": parcel.display_name},
+        )
+
+    async def async_step_archive_parcel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm and archive the selected parcel."""
+        try:
+            parcel = self._selected_parcel()
+        except ParcelNotFoundError:
+            return await self.async_step_init()
+
+        if user_input is not None:
+            await self._coordinator.async_archive_parcel(parcel.id)
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="archive_parcel",
+            data_schema=vol.Schema({}),
+            description_placeholders={"parcel_name": parcel.display_name},
+        )
+
+    async def async_step_remove_parcel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm and permanently remove the selected parcel."""
+        try:
+            parcel = self._selected_parcel()
+        except ParcelNotFoundError:
+            return await self.async_step_init()
+
+        if user_input is not None:
+            await self._coordinator.async_remove_parcel(parcel.id)
+            return await self.async_step_init()
+
+        return self.async_show_form(
+            step_id="remove_parcel",
+            data_schema=vol.Schema({}),
+            description_placeholders={"parcel_name": parcel.display_name},
+        )
+
+    def _selected_parcel(self):
+        """Return the parcel chosen in `select_parcel`, or raise if gone."""
+        if self._parcel_id is None or self._parcel_id not in self._coordinator.data:
+            raise ParcelNotFoundError(self._parcel_id)
+        return self._coordinator.data[self._parcel_id]

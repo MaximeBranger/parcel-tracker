@@ -26,6 +26,56 @@
       "reauth_successful": "Ré-authentification réussie"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Gérer les colis",
+        "menu_options": {
+          "add_parcel": "Ajouter un colis",
+          "select_parcel": "Modifier, archiver ou supprimer un colis"
+        }
+      },
+      "add_parcel": {
+        "title": "Ajouter un colis",
+        "data": {
+          "tracking_number": "Numéro de suivi",
+          "name": "Nom",
+          "notes": "Notes"
+        }
+      },
+      "select_parcel": {
+        "title": "Sélectionner un colis",
+        "data": {
+          "parcel_id": "Colis"
+        }
+      },
+      "parcel_menu": {
+        "title": "{parcel_name}",
+        "menu_options": {
+          "edit_parcel": "Modifier",
+          "archive_parcel": "Archiver",
+          "remove_parcel": "Supprimer",
+          "init": "Retour"
+        }
+      },
+      "edit_parcel": {
+        "title": "Modifier {parcel_name}",
+        "data": {
+          "tracking_number": "Numéro de suivi",
+          "name": "Nom",
+          "notes": "Notes"
+        }
+      },
+      "archive_parcel": {
+        "title": "Archiver {parcel_name} ?",
+        "description": "Le colis conserve son historique mais sort des capteurs actifs et des tableaux de bord. Il ne reste consultable que via l'action get_history."
+      },
+      "remove_parcel": {
+        "title": "Supprimer {parcel_name} ?",
+        "description": "Le colis et son entité seront définitivement supprimés. Cette action est irréversible."
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "parcel": {

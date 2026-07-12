@@ -104,12 +104,17 @@ class ParcelSensor(CoordinatorEntity[ParcelTrackerCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._parcel_id = parcel_id
         self._attr_unique_id = parcel_id
-        self._attr_name = coordinator.data[parcel_id].display_name
         self._attr_device_info = device_info
 
     @property
     def available(self) -> bool:
         return super().available and self._parcel_id in self.coordinator.data
+
+    @property
+    def name(self) -> str | None:
+        """Reflect the parcel's current display name, editable after creation."""
+        parcel = self.coordinator.data.get(self._parcel_id)
+        return parcel.display_name if parcel else None
 
     @property
     def native_value(self) -> str | None:

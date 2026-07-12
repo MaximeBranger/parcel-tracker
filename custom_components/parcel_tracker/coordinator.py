@@ -192,6 +192,37 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             {"parcel_id": parcel.id, "tracking_number": parcel.tracking_number},
         )
 
+    async def async_update_parcel(
+        self,
+        parcel_id: str,
+        tracking_number: str | None = None,
+        name: str | None = None,
+        notes: str | None = None,
+    ) -> Parcel:
+        """Edit a tracked parcel's editable fields.
+
+        The unique_id (parcel_id) never changes, so the entity, its history
+        and any automations referencing it stay valid (SPECIFICATIONS.md:
+        "Identité de l'entité").
+        """
+        parcel = self._get_parcel(parcel_id)
+        tracking_number_changed = (
+            tracking_number is not None and tracking_number != parcel.tracking_number
+        )
+        if tracking_number is not None:
+            parcel.tracking_number = tracking_number
+        if name is not None:
+            parcel.name = name
+        if notes is not None:
+            parcel.notes = notes
+
+        if tracking_number_changed and not parcel.archived:
+            await self._async_refresh_parcel(parcel)
+        await self.storage.async_save(self._parcels)
+
+        self.async_set_updated_data(self._parcels)
+        return parcel
+
     async def async_archive_parcel(self, parcel_id: str) -> None:
         """Archive a parcel: keep its data and entity, drop it from active sensors."""
         parcel = self._get_parcel(parcel_id)
