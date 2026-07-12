@@ -316,6 +316,7 @@ En plus des services, un menu accessible via **Paramètres → Appareils et serv
 * `parcel_tracker.refresh`
 * `parcel_tracker.archive`
 * `parcel_tracker.get_history` — retourne l'historique des colis (actifs et archivés), filtrable par mois, année et transporteur. C'est la voie d'accès principale pour consulter les colis archivés et implémenter les filtres, puisque le registre d'entités HA n'est pas fait pour ce type de requête.
+* `parcel_tracker.get_configured_carriers` — retourne les transporteurs dont les identifiants sont configurés sur cette entrée (`list(coordinator.providers)`). Permet à un frontend (ex. `parcel_tracker-card`) de ne proposer que ces transporteurs dans son propre formulaire d'ajout/modification, sans avoir accès aux données de la config entry — même logique que le scoping déjà fait par `ParcelTrackerOptionsFlow._configured_carriers` pour son propre formulaire.
 
 ---
 

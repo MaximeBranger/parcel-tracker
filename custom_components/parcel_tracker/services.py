@@ -17,6 +17,7 @@ SERVICE_REMOVE = "remove"
 SERVICE_REFRESH = "refresh"
 SERVICE_ARCHIVE = "archive"
 SERVICE_GET_HISTORY = "get_history"
+SERVICE_GET_CONFIGURED_CARRIERS = "get_configured_carriers"
 
 ADD_SCHEMA = vol.Schema(
     {
@@ -116,6 +117,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
         }
 
+    async def async_get_configured_carriers(call: ServiceCall) -> ServiceResponse:
+        """Return the carriers with credentials configured on this entry.
+
+        Lets frontends (e.g. the parcel_tracker-card add/edit form) scope
+        their carrier picker without access to the config entry's data,
+        the same way ParcelTrackerOptionsFlow scopes its own form.
+        """
+        coordinator = _get_coordinator(hass)
+        return {"carriers": list(coordinator.providers)}
+
     hass.services.async_register(DOMAIN, SERVICE_ADD, async_add, schema=ADD_SCHEMA)
     hass.services.async_register(
         DOMAIN, SERVICE_UPDATE, async_update, schema=UPDATE_SCHEMA
@@ -134,6 +145,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=GET_HISTORY_SCHEMA,
         supports_response=SupportsResponse.ONLY,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_CONFIGURED_CARRIERS,
+        async_get_configured_carriers,
+        supports_response=SupportsResponse.ONLY,
+    )
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -145,5 +162,6 @@ def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_REFRESH,
         SERVICE_ARCHIVE,
         SERVICE_GET_HISTORY,
+        SERVICE_GET_CONFIGURED_CARRIERS,
     ):
         hass.services.async_remove(DOMAIN, service)
