@@ -1,0 +1,48 @@
+add:
+  name: Add parcel
+  description: Add a new parcel to track.
+  fields:
+    tracking_number:
+      required: true
+      selector:
+        text:
+    name:
+      selector:
+        text:
+    notes:
+      selector:
+        text:
+remove:
+  name: Remove parcel
+  description: Permanently remove a tracked parcel.
+  fields:
+    parcel_id:
+      required: true
+      selector:
+        text:
+refresh:
+  name: Refresh parcels
+  description: Force an immediate refresh of all active parcels.
+archive:
+  name: Archive parcel
+  description: Archive a delivered parcel.
+  fields:
+    parcel_id:
+      required: true
+      selector:
+        text:
+get_history:
+  name: Get parcel history
+  description: Retrieve parcel history, optionally filtered by month, year or carrier.
+  fields:
+    month:
+      selector:
+        number:
+          min: 1
+          max: 12
+    year:
+      selector:
+        number:
+    carrier:
+      selector:
+        text:

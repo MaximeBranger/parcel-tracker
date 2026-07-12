@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "sensor": {
+      "parcel": {
+        "default": "mdi:package-variant"
+      }
+    }
+  }
+}

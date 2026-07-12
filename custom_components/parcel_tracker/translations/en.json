@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Parcel Tracker",
+        "description": "Enter your La Poste Suivi API key.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key"
+    },
+    "abort": {
+      "already_configured": "Parcel Tracker is already configured"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Parcel Tracker",
+        "description": "Saisissez votre clé API Suivi La Poste.",
+        "data": {
+          "api_key": "Clé API"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Clé API invalide"
+    },
+    "abort": {
+      "already_configured": "Parcel Tracker est déjà configuré"
+    }
+  }
+}
