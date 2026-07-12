@@ -34,19 +34,26 @@ from .providers import (
     configured_carriers,
 )
 
+_PASSWORD_SELECTOR = selector.TextSelector(
+    selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+)
+
 # Every carrier's credentials are optional here; async_step_user requires at
 # least one to be filled in (see _async_validate_carriers). This lets a user
-# configure only the carriers they actually receive parcels from.
+# configure only the carriers they actually receive parcels from. Secret
+# values (API keys, client secrets, private keys) use a password selector so
+# they aren't displayed in clear text in the UI; client IDs/logins are plain
+# identifiers, not secrets, so they stay as regular text fields.
 CARRIER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_API_KEY, default=""): str,
+        vol.Optional(CONF_API_KEY, default=""): _PASSWORD_SELECTOR,
         vol.Optional(CONF_FEDEX_CLIENT_ID, default=""): str,
-        vol.Optional(CONF_FEDEX_CLIENT_SECRET, default=""): str,
-        vol.Optional(CONF_DHL_API_KEY, default=""): str,
+        vol.Optional(CONF_FEDEX_CLIENT_SECRET, default=""): _PASSWORD_SELECTOR,
+        vol.Optional(CONF_DHL_API_KEY, default=""): _PASSWORD_SELECTOR,
         vol.Optional(CONF_UPS_CLIENT_ID, default=""): str,
-        vol.Optional(CONF_UPS_CLIENT_SECRET, default=""): str,
+        vol.Optional(CONF_UPS_CLIENT_SECRET, default=""): _PASSWORD_SELECTOR,
         vol.Optional(CONF_MONDIAL_RELAY_LOGIN, default=""): str,
-        vol.Optional(CONF_MONDIAL_RELAY_PRIVATE_KEY, default=""): str,
+        vol.Optional(CONF_MONDIAL_RELAY_PRIVATE_KEY, default=""): _PASSWORD_SELECTOR,
     }
 )
 
