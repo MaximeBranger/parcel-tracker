@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import logging
 
+import aiohttp
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -91,6 +93,8 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         tracked with other carriers, so provider lookup and auth failures
         are reported the same way as any other per-parcel API error
         (`parcel_error` event) instead of failing the whole config entry.
+        This also covers an invalid tracking number or a network-level
+        carrier failure, so `parcel_tracker.add` never rejects the call.
         """
         provider = self.providers.get(parcel.carrier)
         if provider is None:
@@ -111,7 +115,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
 
         try:
             result = await provider.async_track(parcel.tracking_number)
-        except ParcelTrackerApiError as err:
+        except (ParcelTrackerApiError, aiohttp.ClientError, TimeoutError) as err:
             _LOGGER.warning(
                 "Error refreshing parcel %s (%s): %s",
                 parcel.display_name,
