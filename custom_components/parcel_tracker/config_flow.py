@@ -111,7 +111,6 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize the options flow."""
-        self.config_entry = config_entry
         self._parcel_id: str | None = None
 
     @property
