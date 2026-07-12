@@ -81,3 +81,6 @@ get_history:
     carrier:
       selector:
         text:
+get_configured_carriers:
+  name: Get configured carriers
+  description: Return the carriers with credentials configured on this entry.
