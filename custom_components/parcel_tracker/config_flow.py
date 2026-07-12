@@ -11,7 +11,7 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import ParcelTrackerApiClient, ParcelTrackerAuthError
+from .api import ParcelTrackerApiClient, ParcelTrackerApiError, ParcelTrackerAuthError
 from .const import CONF_API_KEY, DOMAIN
 
 STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_API_KEY): str})
@@ -76,4 +76,6 @@ class ParcelTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return {"base": "invalid_auth"}
         except aiohttp.ClientError:
             return {"base": "cannot_connect"}
+        except ParcelTrackerApiError:
+            return {"base": "unknown"}
         return {}

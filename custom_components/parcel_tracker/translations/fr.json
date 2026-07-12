@@ -18,7 +18,8 @@
     },
     "error": {
       "invalid_auth": "Clé API invalide",
-      "cannot_connect": "Impossible de joindre l'API La Poste"
+      "cannot_connect": "Impossible de joindre l'API La Poste",
+      "unknown": "Erreur inattendue de l'API La Poste"
     },
     "abort": {
       "already_configured": "Parcel Tracker est déjà configuré",

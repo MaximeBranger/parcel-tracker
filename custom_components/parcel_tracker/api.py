@@ -25,9 +25,10 @@ PUBLIC_TRACKING_URL = (
     "https://www.laposte.fr/outils/suivre-vos-envois?code={tracking_number}"
 )
 
-# A tracking number La Poste documents as always returning a valid dummy
-# response, used to validate an API key without tracking a real parcel.
-TEST_TRACKING_NUMBER = "8Q00000000000"
+# One of the fixed tracking numbers La Poste's sandbox dataset documents as
+# always returning a 200 with dummy shipment data, used to validate an API
+# key without tracking a real parcel.
+TEST_TRACKING_NUMBER = "8K00009775862"
 
 # La Poste's `timeline` exposes a small, stable set of macro delivery steps
 # (unlike the much larger and undocumented `event` code list). We match on
