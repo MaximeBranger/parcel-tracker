@@ -13,19 +13,61 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import ParcelTrackerApiClient, ParcelTrackerApiError, ParcelTrackerAuthError
-from .const import CONF_API_KEY, DOMAIN
+from .const import (
+    CARRIER_LABELS,
+    CONF_API_KEY,
+    CONF_DHL_API_KEY,
+    CONF_FEDEX_CLIENT_ID,
+    CONF_FEDEX_CLIENT_SECRET,
+    CONF_MONDIAL_RELAY_LOGIN,
+    CONF_MONDIAL_RELAY_PRIVATE_KEY,
+    CONF_UPS_CLIENT_ID,
+    CONF_UPS_CLIENT_SECRET,
+    DOMAIN,
+)
 from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
+from .providers import (
+    CARRIER_CONFIG_KEYS,
+    ParcelTrackerApiError,
+    ParcelTrackerAuthError,
+    build_provider,
+    configured_carriers,
+)
 
-STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required(CONF_API_KEY): str})
-
-PARCEL_FIELDS_SCHEMA = vol.Schema(
+# Every carrier's credentials are optional here; async_step_user requires at
+# least one to be filled in (see _async_validate_carriers). This lets a user
+# configure only the carriers they actually receive parcels from.
+CARRIER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required("tracking_number"): str,
-        vol.Optional("name", default=""): str,
-        vol.Optional("notes", default=""): str,
+        vol.Optional(CONF_API_KEY, default=""): str,
+        vol.Optional(CONF_FEDEX_CLIENT_ID, default=""): str,
+        vol.Optional(CONF_FEDEX_CLIENT_SECRET, default=""): str,
+        vol.Optional(CONF_DHL_API_KEY, default=""): str,
+        vol.Optional(CONF_UPS_CLIENT_ID, default=""): str,
+        vol.Optional(CONF_UPS_CLIENT_SECRET, default=""): str,
+        vol.Optional(CONF_MONDIAL_RELAY_LOGIN, default=""): str,
+        vol.Optional(CONF_MONDIAL_RELAY_PRIVATE_KEY, default=""): str,
     }
 )
+
+
+def _parcel_fields_schema(carriers: list[str], *, default_carrier: str) -> vol.Schema:
+    """Build the add/edit parcel form, scoped to the entry's configured carriers."""
+    return vol.Schema(
+        {
+            vol.Required("tracking_number"): str,
+            vol.Optional("carrier", default=default_carrier): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=carrier, label=CARRIER_LABELS[carrier])
+                        for carrier in carriers
+                    ]
+                )
+            ),
+            vol.Optional("name", default=""): str,
+            vol.Optional("notes", default=""): str,
+        }
+    )
 
 
 class ParcelTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -36,60 +78,89 @@ class ParcelTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step: entering the La Poste API key."""
+        """Handle the initial step: entering carrier API credentials."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
 
-            errors = await self._async_validate_api_key(user_input[CONF_API_KEY])
+            errors = await self._async_validate_carriers(user_input)
             if not errors:
                 return self.async_create_entry(title="Parcel Tracker", data=user_input)
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user", data_schema=CARRIER_DATA_SCHEMA, errors=errors
         )
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> FlowResult:
-        """Handle reauthentication when the API key is rejected."""
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
+        """Handle reauthentication when a carrier's credentials are rejected."""
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Ask the user for a new API key and re-validate it."""
+        """Ask the user to fix carrier credentials and re-validate them."""
+        reauth_entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            errors = await self._async_validate_api_key(user_input[CONF_API_KEY])
+            errors = await self._async_validate_carriers(user_input)
             if not errors:
-                reauth_entry = self._get_reauth_entry()
-                return self.async_update_reload_and_abort(
-                    reauth_entry, data={**reauth_entry.data, **user_input}
-                )
+                return self.async_update_reload_and_abort(reauth_entry, data=user_input)
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=STEP_USER_DATA_SCHEMA,
+            data_schema=self.add_suggested_values_to_schema(
+                CARRIER_DATA_SCHEMA, reauth_entry.data
+            ),
             errors=errors,
         )
 
-    async def _async_validate_api_key(self, api_key: str) -> dict[str, str]:
-        """Call the La Poste API once to check the key is accepted."""
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Let the user add or update carrier credentials after initial setup."""
+        reconfigure_entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            errors = await self._async_validate_carriers(user_input)
+            if not errors:
+                return self.async_update_reload_and_abort(reconfigure_entry, data=user_input)
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                CARRIER_DATA_SCHEMA, reconfigure_entry.data
+            ),
+            errors=errors,
+        )
+
+    async def _async_validate_carriers(self, data: dict[str, Any]) -> dict[str, str]:
+        """Call each carrier with credentials filled in to check they're accepted.
+
+        Errors are keyed by that carrier's first config field, so the form
+        highlights which carrier's credentials were rejected.
+        """
+        carriers = configured_carriers(data)
+        if not carriers:
+            return {"base": "at_least_one_required"}
+
         session = async_get_clientsession(self.hass)
-        client = ParcelTrackerApiClient(api_key, session)
-        try:
-            await client.async_validate_api_key()
-        except ParcelTrackerAuthError:
-            return {"base": "invalid_auth"}
-        except aiohttp.ClientError:
-            return {"base": "cannot_connect"}
-        except ParcelTrackerApiError:
-            return {"base": "unknown"}
-        return {}
+        errors: dict[str, str] = {}
+        for carrier in carriers:
+            field = CARRIER_CONFIG_KEYS[carrier][0]
+            provider = build_provider(carrier, data, session)
+            try:
+                await provider.async_validate_credentials()
+            except ParcelTrackerAuthError:
+                errors[field] = "invalid_auth"
+            except aiohttp.ClientError:
+                errors[field] = "cannot_connect"
+            except ParcelTrackerApiError:
+                errors[field] = "unknown"
+        return errors
 
     @staticmethod
     @callback
@@ -103,8 +174,8 @@ class ParcelTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
     """Manage tracked parcels from Settings → Devices & services → Configure.
 
-    Parcels are not config entries — the single entry only ever holds the
-    API key (SPECIFICATIONS.md) — so this flow reads and mutates the
+    Parcels are not config entries — the single entry only ever holds carrier
+    credentials (SPECIFICATIONS.md) — so this flow reads and mutates the
     coordinator's in-memory parcel list directly instead of storing config
     entry options.
     """
@@ -116,6 +187,11 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
     @property
     def _coordinator(self) -> ParcelTrackerCoordinator:
         return self.hass.data[DOMAIN][self.config_entry.entry_id]
+
+    @property
+    def _configured_carriers(self) -> list[str]:
+        """Carriers with credentials configured on this entry."""
+        return list(self._coordinator.providers)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -133,13 +209,17 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             await self._coordinator.async_add_parcel(
                 tracking_number=user_input["tracking_number"],
+                carrier=user_input["carrier"],
                 name=user_input["name"],
                 notes=user_input["notes"],
             )
             return await self.async_step_init()
 
         return self.async_show_form(
-            step_id="add_parcel", data_schema=PARCEL_FIELDS_SCHEMA
+            step_id="add_parcel",
+            data_schema=_parcel_fields_schema(
+                self._configured_carriers, default_carrier=self._configured_carriers[0]
+            ),
         )
 
     async def async_step_select_parcel(
@@ -153,7 +233,7 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
         options = [
             selector.SelectOptionDict(
                 value=parcel_id,
-                label=f"{parcel.display_name} ({parcel.tracking_number})",
+                label=f"{parcel.display_name} ({CARRIER_LABELS.get(parcel.carrier, parcel.carrier)} · {parcel.tracking_number})",
             )
             for parcel_id, parcel in self._coordinator.data.items()
             if not parcel.archived
@@ -187,7 +267,7 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
     async def async_step_edit_parcel(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Edit the name, notes and/or tracking number of the selected parcel."""
+        """Edit the name, notes, carrier and/or tracking number of the selected parcel."""
         try:
             parcel = self._selected_parcel()
         except ParcelNotFoundError:
@@ -197,17 +277,26 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
             await self._coordinator.async_update_parcel(
                 parcel.id,
                 tracking_number=user_input["tracking_number"],
+                carrier=user_input["carrier"],
                 name=user_input["name"],
                 notes=user_input["notes"],
             )
             return await self.async_step_init()
 
+        # Always offer the parcel's current carrier, even if its credentials
+        # were since removed from the entry, so editing it doesn't force an
+        # unrelated carrier change.
+        carriers = self._configured_carriers
+        if parcel.carrier not in carriers:
+            carriers = [parcel.carrier, *carriers]
+
         return self.async_show_form(
             step_id="edit_parcel",
             data_schema=self.add_suggested_values_to_schema(
-                PARCEL_FIELDS_SCHEMA,
+                _parcel_fields_schema(carriers, default_carrier=parcel.carrier),
                 {
                     "tracking_number": parcel.tracking_number,
+                    "carrier": parcel.carrier,
                     "name": parcel.name,
                     "notes": parcel.notes,
                 },

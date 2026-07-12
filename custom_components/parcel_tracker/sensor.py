@@ -83,7 +83,7 @@ def _hub_device_info(entry: ConfigEntry) -> DeviceInfo:
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
         name="Parcel Tracker",
-        manufacturer="La Poste",
+        manufacturer="Parcel Tracker",
         entry_type=DeviceEntryType.SERVICE,
     )
 

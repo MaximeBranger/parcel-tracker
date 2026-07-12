@@ -55,7 +55,7 @@ Informations :
 
 * Numéro de suivi
 * Nom personnalisé (ex. : *Commande Amazon*)
-* Transporteur — figé sur **La Poste / Colissimo / Chronopost** au MVP (voir [Providers](#providers))
+* Transporteur — au choix parmi les providers configurés (voir [Providers](#providers))
 * Date d'ajout
 * Notes (optionnel)
 
@@ -86,49 +86,58 @@ Lorsqu'un colis est livré, il peut être archivé :
 
 ## Providers
 
-### MVP : La Poste seul
+### Providers implémentés
 
-Un seul provider est implémenté au MVP : **La Poste**, qui couvre Colissimo, Chronopost et le courrier suivi.
+Cinq providers sont implémentés : **La Poste** (Colissimo, Chronopost, courrier suivi), **FedEx**, **DHL**, **UPS** et **Mondial Relay**.
 
 ```text
-Provider La Poste
-    ├── Colissimo
-    ├── Chronopost
-    └── Lettre suivie
+TrackingProvider
+    ├── La Poste       (API Suivi, clé API)
+    ├── FedEx           (Track API v1, OAuth2 client_credentials)
+    ├── DHL              (Unified Tracking API, clé API)
+    ├── UPS              (Track API v1, OAuth2 client_credentials)
+    └── Mondial Relay    (webservice WSI2, login + clé privée signée)
 ```
 
-Support :
+Support (variable selon les données exposées par chaque API) :
 
 * Statut courant
 * Historique des événements
+* Date de livraison estimée (non exposée par Mondial Relay au MVP)
 * Localisation (si disponible)
 
-Les autres transporteurs (UPS, DHL, Mondial Relay, FedEx, GLS, DPD, Amazon Logistics…) sont hors MVP. L'architecture provider (voir plus bas) reste conçue pour les accueillir sans refonte — l'ordre de priorité recommandé pour la suite est celui de `FRANCE-API.md` (Mondial Relay, UPS, DHL en priorité V2).
+Les autres transporteurs (GLS, DPD, Amazon Logistics…) restent hors périmètre. L'architecture provider (voir plus bas) reste conçue pour les accueillir sans refonte.
 
 ### Détection automatique — reportée
 
-Avec un seul provider, il n'y a rien à détecter : tout colis ajouté est traité comme La Poste. Le champ `carrier` est conservé dans le modèle de données pour ne pas casser la compatibilité quand un second provider sera ajouté, mais l'UI d'ajout n'a pas besoin de proposer de sélection ou d'afficher un score de confiance au MVP.
+Chaque colis porte un champ `carrier` explicite, choisi par l'utilisateur à l'ajout (aucune valeur par défaut imposée au-delà de La Poste pour compatibilité ascendante). La détection automatique du transporteur à partir du numéro de suivi (liste des 10 transporteurs de la vision initiale) reste hors périmètre et pourra être ajoutée plus tard sans changer le modèle de données.
 
-La détection automatique multi-transporteurs (liste des 10 transporteurs de la vision initiale) redevient pertinente dès l'ajout d'un deuxième provider, en V2.
+### Authentification auprès des providers
 
-### Authentification auprès du provider
-
-L'API Suivi de La Poste nécessite une clé développeur. Chaque utilisateur crée son propre compte (gratuit) et saisit sa clé lors de la configuration de l'intégration :
+Chaque provider nécessite ses propres identifiants développeur, saisis par l'utilisateur lors de la configuration de l'intégration. Tous les transporteurs sont **optionnels** dans le config_flow : l'utilisateur ne renseigne que ceux qu'il utilise réellement, mais au moins un est requis pour créer la config entry.
 
 ```text
 config_flow
     │
     ▼
-Saisie de la clé API La Poste
+Saisie des identifiants (0 à N transporteurs, ≥ 1 requis)
     │
     ▼
-Validation (appel de test)
+Validation (un appel de test par transporteur renseigné)
     │
     ▼
 Création de la config entry
 ```
 
-Aucune clé n'est fournie ou partagée par le projet — cohérent avec « sans cloud propriétaire » : pas de quota mutualisé entre utilisateurs, pas de dépendance à un service tiers géré par le projet.
+| Transporteur    | Identifiants requis                              | Schéma d'authentification        |
+|-----------------|---------------------------------------------------|-----------------------------------|
+| La Poste        | Clé API                                            | Clé API en en-tête                |
+| FedEx           | Client ID + Client secret                          | OAuth2 client_credentials         |
+| DHL             | Clé API                                            | Clé API en en-tête                |
+| UPS             | Client ID + Client secret                          | OAuth2 client_credentials         |
+| Mondial Relay   | Login (Enseigne) + Clé privée                      | Hash MD5 signé (webservice WSI2)  |
+
+Aucune clé n'est fournie ou partagée par le projet — cohérent avec « sans cloud propriétaire » : pas de quota mutualisé entre utilisateurs, pas de dépendance à un service tiers géré par le projet. Les identifiants d'un ou plusieurs transporteurs peuvent être ajoutés ou corrigés après la création de l'intégration via **Reconfigurer** (Paramètres → Appareils et services → Parcel Tracker).
 
 ---
 
@@ -136,20 +145,20 @@ Aucune clé n'est fournie ou partagée par le projet — cohérent avec « sans 
 
 ### Une config entry, des colis dynamiques
 
-Il n'existe **qu'une seule config entry** par installation, créée une fois via `config_flow` (elle ne porte que la clé API La Poste). Les colis eux-mêmes sont ajoutés et retirés **dynamiquement**, sans repasser par un flow de configuration :
+Il n'existe **qu'une seule config entry** par installation, créée une fois via `config_flow` (elle ne porte que les identifiants des providers). Les colis eux-mêmes sont ajoutés et retirés **dynamiquement**, sans repasser par un flow de configuration :
 
 ```text
 config_flow (une fois)
     │
     ▼
-Clé API La Poste
+Identifiants des transporteurs configurés
 
 ────────────────────────────
 
 parcel_tracker.add (autant de fois que nécessaire)
     │
     ▼
-Nouveau colis suivi par le coordinator existant
+Nouveau colis suivi par le coordinator existant, pour le transporteur choisi
 ```
 
 Un unique `DataUpdateCoordinator` gère la liste complète des colis actifs et crée/retire les entités correspondantes au fil de l'eau.
@@ -180,7 +189,7 @@ Toutes les X minutes
 Liste des colis actifs (non archivés)
       │
       ▼
-Interrogation du provider La Poste
+Interrogation du provider correspondant au transporteur de chaque colis
       │
       ▼
 Comparaison avec l'état précédent
@@ -355,9 +364,16 @@ custom_components/
 └── parcel_tracker/
     ├── __init__.py
     ├── manifest.json
-    ├── config_flow.py       # configuration de la clé API La Poste (une fois)
+    ├── config_flow.py       # identifiants des providers (0..N, ≥1 requis) + reconfigure
     ├── coordinator.py       # DataUpdateCoordinator unique, intervalle fixe
-    ├── api.py                # client API La Poste
+    ├── providers/            # un client par transporteur
+    │   ├── base.py            # interface TrackingProvider + erreurs communes
+    │   ├── registry.py         # mapping carrier -> provider, clés de config requises
+    │   ├── laposte.py
+    │   ├── fedex.py
+    │   ├── dhl.py
+    │   ├── ups.py
+    │   └── mondial_relay.py
     ├── parcel.py             # modèle de données d'un colis (id, tracking_number, carrier, ...)
     ├── storage.py             # persistance .storage/parcel_tracker
     ├── services.py            # add / remove / refresh / archive / get_history
@@ -370,26 +386,29 @@ custom_components/
 
 ## Architecture des fournisseurs
 
-Le backend reste indépendant du fournisseur de suivi, même si un seul est implémenté au MVP, afin de ne pas devoir réécrire le coordinator/storage à l'ajout d'un second provider.
+Le backend reste indépendant du fournisseur de suivi : le coordinator interroge un `TrackingProvider` par colis (sélectionné via son champ `carrier`), sans connaître les détails d'authentification ou de format de réponse propres à chaque transporteur.
 
 ```python
-class TrackingProvider:
+class TrackingProvider(ABC):
 
-    def detect(self, tracking_number):
-        pass
+    async def async_validate_credentials(self) -> None:
+        ...
 
-    def track(self, tracking_number):
-        pass
+    async def async_track(self, tracking_number: str) -> dict:
+        ...
 ```
 
 ```text
 TrackingProvider
-    └── La Poste (MVP)
-    └── Mondial Relay (V2)
-    └── UPS (V2)
-    └── DHL (V2)
-    └── ...
+    ├── La Poste
+    ├── FedEx
+    ├── DHL
+    ├── UPS
+    ├── Mondial Relay
+    └── ... (GLS, DPD, Amazon Logistics — non implémentés)
 ```
+
+Un provider n'est instancié que si ses identifiants sont configurés (voir [Authentification](#authentification-auprès-des-providers)) : `providers/registry.py` associe chaque transporteur aux clés de config qu'il attend et à sa classe. Si un colis référence un transporteur dont les identifiants ont été retirés, le coordinator émet un événement `parcel_error` au lieu d'échouer — les autres colis continuent d'être rafraîchis normalement.
 
 ---
 
@@ -405,10 +424,13 @@ TrackingProvider
 * Événements Home Assistant
 * Stockage local `.storage`
 
-### V2
+### V2 (en cours)
 
-* Providers supplémentaires : Mondial Relay, UPS, DHL (priorité selon `FRANCE-API.md`), puis FedEx, GLS, DPD
-* Détection automatique du transporteur (redevient pertinente avec plusieurs providers)
+* ✅ Providers supplémentaires : FedEx, DHL, UPS, Mondial Relay
+* ✅ Sélection du transporteur à l'ajout/modification d'un colis (UI et services)
+* ✅ Identifiants par transporteur optionnels et modifiables après coup (`Reconfigurer`)
+* Providers restants : GLS, DPD
+* Détection automatique du transporteur (à partir du format du numéro de suivi)
 * Statistiques (nombre de colis, temps moyen de livraison, répartition par transporteur)
 * Gestion des expéditions (réception vs expédition)
 * Étiquettes et catégories
@@ -427,7 +449,7 @@ TrackingProvider
 
 * Distribution via HACS
 * Fonctionnement sans cloud propriétaire — clés API fournies par l'utilisateur, aucune dépendance à un service géré par le projet
-* Architecture extensible basée sur des fournisseurs ("providers"), même à un seul provider au MVP
+* Architecture extensible basée sur des fournisseurs ("providers"), chacun activé indépendamment selon les identifiants configurés
 * Stockage local dans `.storage`
 * Un seul `DataUpdateCoordinator`, intervalle de rafraîchissement fixe
 * `unique_id` des entités colis basé sur un identifiant interne stable, jamais sur le numéro de suivi

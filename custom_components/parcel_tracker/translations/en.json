@@ -3,27 +3,57 @@
     "step": {
       "user": {
         "title": "Parcel Tracker",
-        "description": "Enter your La Poste Suivi API key.",
+        "description": "Enter API credentials for the carriers you want to track. Every carrier is optional, but at least one is required.",
         "data": {
-          "api_key": "API key"
+          "api_key": "La Poste API key",
+          "fedex_client_id": "FedEx client ID",
+          "fedex_client_secret": "FedEx client secret",
+          "dhl_api_key": "DHL API key",
+          "ups_client_id": "UPS client ID",
+          "ups_client_secret": "UPS client secret",
+          "mondial_relay_login": "Mondial Relay login (Enseigne)",
+          "mondial_relay_private_key": "Mondial Relay private key"
         }
       },
       "reauth_confirm": {
         "title": "Reauthenticate Parcel Tracker",
-        "description": "Your La Poste API key was rejected. Enter a valid key.",
+        "description": "One or more carrier credentials were rejected. Fix them below.",
         "data": {
-          "api_key": "API key"
+          "api_key": "La Poste API key",
+          "fedex_client_id": "FedEx client ID",
+          "fedex_client_secret": "FedEx client secret",
+          "dhl_api_key": "DHL API key",
+          "ups_client_id": "UPS client ID",
+          "ups_client_secret": "UPS client secret",
+          "mondial_relay_login": "Mondial Relay login (Enseigne)",
+          "mondial_relay_private_key": "Mondial Relay private key"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Parcel Tracker",
+        "description": "Add or update carrier API credentials.",
+        "data": {
+          "api_key": "La Poste API key",
+          "fedex_client_id": "FedEx client ID",
+          "fedex_client_secret": "FedEx client secret",
+          "dhl_api_key": "DHL API key",
+          "ups_client_id": "UPS client ID",
+          "ups_client_secret": "UPS client secret",
+          "mondial_relay_login": "Mondial Relay login (Enseigne)",
+          "mondial_relay_private_key": "Mondial Relay private key"
         }
       }
     },
     "error": {
-      "invalid_auth": "Invalid API key",
-      "cannot_connect": "Unable to reach the La Poste API",
-      "unknown": "Unexpected error from the La Poste API"
+      "invalid_auth": "Invalid or rejected credentials",
+      "cannot_connect": "Unable to reach the carrier's API",
+      "unknown": "Unexpected error from the carrier's API",
+      "at_least_one_required": "Enter credentials for at least one carrier"
     },
     "abort": {
       "already_configured": "Parcel Tracker is already configured",
-      "reauth_successful": "Re-authentication was successful"
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Parcel Tracker was reconfigured"
     }
   },
   "options": {
@@ -39,6 +69,7 @@
         "title": "Add a parcel",
         "data": {
           "tracking_number": "Tracking number",
+          "carrier": "Carrier",
           "name": "Name",
           "notes": "Notes"
         }
@@ -62,6 +93,7 @@
         "title": "Edit {parcel_name}",
         "data": {
           "tracking_number": "Tracking number",
+          "carrier": "Carrier",
           "name": "Name",
           "notes": "Notes"
         }

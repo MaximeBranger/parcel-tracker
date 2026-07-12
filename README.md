@@ -5,7 +5,7 @@
 
 Intégration Home Assistant distribuée via [HACS](https://hacs.xyz) permettant de centraliser le suivi de tous vos colis, quel que soit le transporteur.
 
-Le MVP fonctionne de manière autonome, sans service externe : il interroge directement l'API de La Poste (Colissimo, Chronopost, lettre suivie) et stocke les données localement dans `.storage/`.
+L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**.
 
 Voir [SPECIFICATIONS.md](SPECIFICATIONS.md) pour la spécification complète.
 
@@ -17,7 +17,17 @@ Via [HACS](https://hacs.xyz), en ajoutant ce dépôt comme dépôt personnalisé
 
 ## Configuration
 
-L'intégration nécessite une clé développeur pour l'API Suivi de La Poste, à saisir lors de l'ajout de l'intégration. Créez un compte gratuit et une application sur [developer.laposte.fr](https://developer.laposte.fr) pour l'obtenir.
+Lors de l'ajout de l'intégration, saisissez les identifiants développeur du ou des transporteurs que vous voulez suivre — tous sont optionnels, mais au moins un est requis. Vous pourrez en ajouter ou en corriger plus tard sans recréer l'intégration, via **Paramètres → Appareils et services → Parcel Tracker → Reconfigurer**.
+
+| Transporteur  | Où obtenir les identifiants                                                | Identifiants demandés               |
+|---------------|-----------------------------------------------------------------------------|--------------------------------------|
+| La Poste      | [developer.laposte.fr](https://developer.laposte.fr) (compte gratuit)       | Clé API                              |
+| FedEx         | [developer.fedex.com](https://developer.fedex.com), créer un projet Track API | Client ID + Client secret           |
+| DHL           | [developer.dhl.com](https://developer.dhl.com), API « Shipment Tracking - Unified » | Clé API                       |
+| UPS           | [developer.ups.com](https://developer.ups.com), créer une app avec le scope Track | Client ID + Client secret     |
+| Mondial Relay | Compte marchand Mondial Relay (identifiants webservice WSI2)                | Login (Enseigne) + Clé privée       |
+
+Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification.
 
 ## Tester l'intégration en mode développement
 
@@ -61,7 +71,7 @@ Au premier lancement, l'assistant de configuration se termine sur `http://localh
 
 ### 5. Ajouter l'intégration
 
-Dans l'interface : **Paramètres → Appareils et services → Ajouter une intégration → Parcel Tracker**, puis saisissez votre clé API La Poste. La clé est validée par un appel de test au moment de la soumission (voir `config_flow.py`) ; une clé invalide affiche une erreur sans créer l'entrée.
+Dans l'interface : **Paramètres → Appareils et services → Ajouter une intégration → Parcel Tracker**, puis saisissez les identifiants d'au moins un transporteur (voir [Configuration](#configuration)). Chaque transporteur renseigné est validé par un appel de test au moment de la soumission (voir `config_flow.py`) ; des identifiants invalides affichent une erreur sur le champ concerné sans créer l'entrée.
 
 ### 6. Piloter les colis
 
