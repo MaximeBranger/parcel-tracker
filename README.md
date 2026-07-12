@@ -19,6 +19,8 @@ Via [HACS](https://hacs.xyz), en ajoutant ce dépôt comme dépôt personnalisé
 
 Lors de l'ajout de l'intégration, saisissez les identifiants développeur du ou des transporteurs que vous voulez suivre — tous sont optionnels, mais au moins un est requis. Vous pourrez en ajouter ou en corriger plus tard sans recréer l'intégration, via **Paramètres → Appareils et services → Parcel Tracker → Reconfigurer**.
 
+Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay). Ne les partagez pas et ne les commitez jamais dans un dépôt public.
+
 | Transporteur  | Où obtenir les identifiants                                                | Identifiants demandés               |
 |---------------|-----------------------------------------------------------------------------|--------------------------------------|
 | La Poste      | [developer.laposte.fr](https://developer.laposte.fr) (compte gratuit)       | Clé API                              |
@@ -27,7 +29,46 @@ Lors de l'ajout de l'intégration, saisissez les identifiants développeur du ou
 | UPS           | [developer.ups.com](https://developer.ups.com), créer une app avec le scope Track | Client ID + Client secret     |
 | Mondial Relay | Compte marchand Mondial Relay (identifiants webservice WSI2)                | Login (Enseigne) + Clé privée       |
 
-Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification.
+Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification. Le détail des étapes pour obtenir chaque identifiant est ci-dessous.
+
+### La Poste
+
+1. Créez un compte gratuit sur [developer.laposte.fr](https://developer.laposte.fr).
+2. Une fois connecté, rendez-vous dans **Mes applications** et créez une nouvelle application.
+3. Depuis la page de l'application, souscrivez à l'API **Suivi** (« Track & Trace »).
+4. Récupérez la **clé API** générée pour l'application (souvent affichée comme `X-Okapi-Key`) : c'est la valeur à saisir dans le champ *Clé API* de l'intégration.
+
+### FedEx
+
+1. Créez un compte sur le [portail développeur FedEx](https://developer.fedex.com).
+2. Dans le tableau de bord, cliquez sur **Create a new project**.
+3. Ajoutez l'API **Track API** au projet créé.
+4. Ouvrez l'onglet **Authentication** du projet : vous y trouverez l'**API Key** (à saisir comme *Client ID*) et la **Secret Key** (à saisir comme *Client secret*).
+5. Ces identifiants pointent d'abord vers l'environnement sandbox de FedEx. Suivez la procédure « Move to Production » du portail pour obtenir des identifiants de production une fois vos tests validés — l'intégration fonctionne avec l'un ou l'autre, seules les données de suivi diffèrent (données fictives en sandbox).
+
+### DHL
+
+1. Créez un compte sur [developer.dhl.com](https://developer.dhl.com).
+2. Dans **My Apps & Keys**, créez une nouvelle application (« Create App »).
+3. Associez l'API **Shipment Tracking - Unified** à cette application.
+4. Copiez la **Consumer Key** générée : c'est la clé API à renseigner dans l'intégration.
+5. L'offre gratuite du portail DHL est soumise à un quota d'appels journalier — vérifiez les conditions affichées sur votre application si vous suivez beaucoup de colis avec un intervalle de rafraîchissement court.
+
+### UPS
+
+1. Créez un compte sur [developer.ups.com](https://developer.ups.com).
+2. Depuis **Apps**, créez une nouvelle application (« Add Apps ») et sélectionnez le produit/scope **Track API**.
+3. Un **Client ID** et un **Client secret** sont générés pour l'application : ce sont les deux valeurs attendues par l'intégration.
+4. Comme pour FedEx, les identifiants créés par défaut ciblent l'environnement de test (CIE) d'UPS. Un accès en production peut nécessiter de lier l'application à un numéro de compte UPS existant, selon les conditions actuelles du portail.
+
+### Mondial Relay
+
+Mondial Relay n'a pas de portail développeur en libre-service : l'accès au webservice de suivi (WSI2) est réservé aux comptes marchands.
+
+1. Contactez le service commercial Mondial Relay (ou votre interlocuteur habituel si vous avez déjà un compte marchand) pour demander l'activation du **webservice WSI2**.
+2. Vous recevrez un **numéro d'enseigne** (identifiant marchand) : c'est le *Login* attendu par l'intégration.
+3. Vous recevrez également une **clé privée** associée à ce compte, utilisée pour signer les requêtes : c'est la *Clé privée* attendue par l'intégration.
+4. N'ayant pas d'environnement de test public, la validation des identifiants dans l'intégration se fait directement contre vos identifiants réels — assurez-vous qu'ils sont corrects avant de les saisir pour éviter des erreurs d'authentification répétées.
 
 ## Tester l'intégration en mode développement
 
