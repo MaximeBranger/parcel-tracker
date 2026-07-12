@@ -20,8 +20,9 @@ class ParcelStorage:
     async def async_load(self) -> dict[str, Parcel]:
         """Load parcels from disk."""
         data = await self._store.async_load() or []
-        return {item["id"]: Parcel(**item) for item in data}
+        parcels = (Parcel.from_dict(item) for item in data)
+        return {parcel.id: parcel for parcel in parcels}
 
     async def async_save(self, parcels: dict[str, Parcel]) -> None:
         """Persist parcels to disk."""
-        await self._store.async_save([vars(parcel) for parcel in parcels.values()])
+        await self._store.async_save([parcel.to_dict() for parcel in parcels.values()])

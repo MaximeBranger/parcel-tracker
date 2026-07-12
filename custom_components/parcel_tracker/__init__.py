@@ -5,11 +5,9 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import DOMAIN, PLATFORMS
 from .coordinator import ParcelTrackerCoordinator
-from .services import async_setup_services
-
-PLATFORMS = ["sensor"]
+from .services import async_setup_services, async_unload_services
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -29,4 +27,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
+        if not hass.data[DOMAIN]:
+            async_unload_services(hass)
     return unload_ok

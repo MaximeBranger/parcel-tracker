@@ -14,7 +14,76 @@ Via [HACS](https://hacs.xyz), en ajoutant ce dépôt comme dépôt personnalisé
 
 ## Configuration
 
-L'intégration nécessite une clé développeur pour l'API Suivi de La Poste, à saisir lors de l'ajout de l'intégration.
+L'intégration nécessite une clé développeur pour l'API Suivi de La Poste, à saisir lors de l'ajout de l'intégration. Créez un compte gratuit et une application sur [developer.laposte.fr](https://developer.laposte.fr) pour l'obtenir.
+
+## Tester l'intégration en mode développement
+
+Pas besoin d'installer une instance Home Assistant complète séparée : on lance une instance de développement locale qui charge directement ce dépôt via `custom_components/`.
+
+### 1. Préparer un environnement Home Assistant local
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install homeassistant
+```
+
+### 2. Créer un dossier de config et y lier l'intégration
+
+```bash
+mkdir -p config/custom_components
+ln -s "$(pwd)/custom_components/parcel_tracker" config/custom_components/parcel_tracker
+```
+
+Le lien symbolique permet de modifier le code du dépôt et de le retrouver directement pris en compte au prochain redémarrage de Home Assistant, sans copie manuelle.
+
+### 3. Activer les logs de debug de l'intégration
+
+Ajoutez dans `config/configuration.yaml` (généré automatiquement au premier lancement, sinon créez-le) :
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.parcel_tracker: debug
+```
+
+### 4. Lancer Home Assistant
+
+```bash
+hass -c config
+```
+
+Au premier lancement, l'assistant de configuration se termine sur `http://localhost:8123`. Terminez l'onboarding (compte utilisateur, localisation...).
+
+### 5. Ajouter l'intégration
+
+Dans l'interface : **Paramètres → Appareils et services → Ajouter une intégration → Parcel Tracker**, puis saisissez votre clé API La Poste. La clé est validée par un appel de test au moment de la soumission (voir `config_flow.py`) ; une clé invalide affiche une erreur sans créer l'entrée.
+
+### 6. Piloter les colis via les services
+
+Comme les colis ne passent pas par un flow de configuration mais par les services (`parcel_tracker.add`, `.remove`, `.archive`, `.refresh`, `.get_history`), le plus simple pour tester est **Outils de développement → Actions** :
+
+```yaml
+action: parcel_tracker.add
+data:
+  tracking_number: "8Q00000000000"   # numéro de test fourni par La Poste
+  name: "Colis de test"
+```
+
+Vérifiez ensuite :
+
+* l'entité `sensor.<nom_du_colis>` apparaît immédiatement (sans redémarrage, grâce au dispatcher HA) ;
+* les capteurs globaux (`sensor.parcels_active`, etc.) se mettent à jour ;
+* l'onglet **Journal** affiche les événements (`parcel_added`, `parcel_updated`, ...) ;
+* `parcel_tracker.refresh` force un cycle immédiat sans attendre les 15 minutes par défaut ;
+* `parcel_tracker.get_history` (avec « Renvoyer la réponse » activé dans Outils de développement → Actions) retourne la liste des colis stockés.
+
+### 7. Itérer
+
+Toute modification du code Python nécessite un redémarrage de Home Assistant (`Ctrl+C` puis `hass -c config`). Pour valider rapidement une modification sans relancer toute l'instance, `hass -c config --script check_config` vérifie la configuration sans démarrer le cœur applicatif.
+
+Les données des colis sont persistées dans `config/.storage/parcel_tracker` ; supprimez ce fichier pour repartir d'un état propre entre deux sessions de test.
 
 ## License
 

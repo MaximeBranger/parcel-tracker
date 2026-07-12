@@ -5,9 +5,11 @@ from __future__ import annotations
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
 
 SERVICE_ADD = "add"
 SERVICE_REMOVE = "remove"
@@ -18,18 +20,30 @@ SERVICE_GET_HISTORY = "get_history"
 ADD_SCHEMA = vol.Schema(
     {
         vol.Required("tracking_number"): cv.string,
-        vol.Optional("name"): cv.string,
-        vol.Optional("notes"): cv.string,
+        vol.Optional("name", default=""): cv.string,
+        vol.Optional("notes", default=""): cv.string,
     }
 )
 PARCEL_ID_SCHEMA = vol.Schema({vol.Required("parcel_id"): cv.string})
 GET_HISTORY_SCHEMA = vol.Schema(
     {
-        vol.Optional("month"): cv.positive_int,
+        vol.Optional("month"): vol.All(vol.Coerce(int), vol.Range(min=1, max=12)),
         vol.Optional("year"): cv.positive_int,
         vol.Optional("carrier"): cv.string,
     }
 )
+
+
+def _get_coordinator(hass: HomeAssistant) -> ParcelTrackerCoordinator:
+    """Return the single Parcel Tracker coordinator.
+
+    The MVP only ever has one config entry (SPECIFICATIONS.md), so services
+    are not entry-scoped.
+    """
+    coordinators = hass.data.get(DOMAIN, {})
+    if not coordinators:
+        raise HomeAssistantError("Parcel Tracker is not configured")
+    return next(iter(coordinators.values()))
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -37,18 +51,44 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_add(call: ServiceCall) -> None:
         """Add a new parcel to track."""
+        coordinator = _get_coordinator(hass)
+        await coordinator.async_add_parcel(
+            tracking_number=call.data["tracking_number"],
+            name=call.data["name"],
+            notes=call.data["notes"],
+        )
 
     async def async_remove(call: ServiceCall) -> None:
         """Permanently remove a tracked parcel."""
+        coordinator = _get_coordinator(hass)
+        try:
+            await coordinator.async_remove_parcel(call.data["parcel_id"])
+        except ParcelNotFoundError as err:
+            raise HomeAssistantError(str(err)) from err
 
     async def async_refresh(call: ServiceCall) -> None:
         """Force an immediate refresh of all active parcels."""
+        coordinator = _get_coordinator(hass)
+        await coordinator.async_refresh()
 
     async def async_archive(call: ServiceCall) -> None:
         """Archive a delivered parcel."""
+        coordinator = _get_coordinator(hass)
+        try:
+            await coordinator.async_archive_parcel(call.data["parcel_id"])
+        except ParcelNotFoundError as err:
+            raise HomeAssistantError(str(err)) from err
 
-    async def async_get_history(call: ServiceCall) -> None:
+    async def async_get_history(call: ServiceCall) -> ServiceResponse:
         """Return parcel history, filterable by month, year and carrier."""
+        coordinator = _get_coordinator(hass)
+        return {
+            "parcels": coordinator.async_get_history(
+                month=call.data.get("month"),
+                year=call.data.get("year"),
+                carrier=call.data.get("carrier"),
+            )
+        }
 
     hass.services.async_register(DOMAIN, SERVICE_ADD, async_add, schema=ADD_SCHEMA)
     hass.services.async_register(
@@ -59,5 +99,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_ARCHIVE, async_archive, schema=PARCEL_ID_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN, SERVICE_GET_HISTORY, async_get_history, schema=GET_HISTORY_SCHEMA
+        DOMAIN,
+        SERVICE_GET_HISTORY,
+        async_get_history,
+        schema=GET_HISTORY_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
     )
+
+
+def async_unload_services(hass: HomeAssistant) -> None:
+    """Remove all parcel_tracker services (last config entry unloaded)."""
+    for service in (
+        SERVICE_ADD,
+        SERVICE_REMOVE,
+        SERVICE_REFRESH,
+        SERVICE_ARCHIVE,
+        SERVICE_GET_HISTORY,
+    ):
+        hass.services.async_remove(DOMAIN, service)

@@ -7,6 +7,6 @@
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/MaximeBranger/parcel-tracker/issues",
-  "requirements": ["aiohttp"],
-  "version": "0.1.0"
+  "requirements": [],
+  "version": "0.2.0"
 }

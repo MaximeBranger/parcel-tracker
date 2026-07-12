@@ -7,13 +7,54 @@
         "data": {
           "api_key": "API key"
         }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Parcel Tracker",
+        "description": "Your La Poste API key was rejected. Enter a valid key.",
+        "data": {
+          "api_key": "API key"
+        }
       }
     },
     "error": {
-      "invalid_auth": "Invalid API key"
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Unable to reach the La Poste API"
     },
     "abort": {
-      "already_configured": "Parcel Tracker is already configured"
+      "already_configured": "Parcel Tracker is already configured",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "parcel": {
+        "state": {
+          "created": "Created",
+          "taken_in_charge": "Taken in charge",
+          "in_transit": "In transit",
+          "at_sorting_center": "At sorting center",
+          "out_for_delivery": "Out for delivery",
+          "delivered": "Delivered",
+          "delayed": "Delayed",
+          "incident": "Incident",
+          "returned_to_sender": "Returned to sender"
+        }
+      },
+      "parcels_active": {
+        "name": "Active parcels"
+      },
+      "parcels_delivered": {
+        "name": "Delivered parcels"
+      },
+      "parcels_waiting": {
+        "name": "Parcels awaiting pickup"
+      },
+      "parcels_today": {
+        "name": "Parcels delivered today"
+      },
+      "parcels_late": {
+        "name": "Delayed parcels"
+      }
     }
   }
 }

@@ -7,13 +7,54 @@
         "data": {
           "api_key": "Clé API"
         }
+      },
+      "reauth_confirm": {
+        "title": "Ré-authentification Parcel Tracker",
+        "description": "Votre clé API La Poste a été refusée. Saisissez une clé valide.",
+        "data": {
+          "api_key": "Clé API"
+        }
       }
     },
     "error": {
-      "invalid_auth": "Clé API invalide"
+      "invalid_auth": "Clé API invalide",
+      "cannot_connect": "Impossible de joindre l'API La Poste"
     },
     "abort": {
-      "already_configured": "Parcel Tracker est déjà configuré"
+      "already_configured": "Parcel Tracker est déjà configuré",
+      "reauth_successful": "Ré-authentification réussie"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "parcel": {
+        "state": {
+          "created": "Créé",
+          "taken_in_charge": "Pris en charge",
+          "in_transit": "En transit",
+          "at_sorting_center": "Arrivé au centre de tri",
+          "out_for_delivery": "En livraison",
+          "delivered": "Livré",
+          "delayed": "Retard",
+          "incident": "Incident",
+          "returned_to_sender": "Retour expéditeur"
+        }
+      },
+      "parcels_active": {
+        "name": "Colis actifs"
+      },
+      "parcels_delivered": {
+        "name": "Colis livrés"
+      },
+      "parcels_waiting": {
+        "name": "Colis en attente de prise en charge"
+      },
+      "parcels_today": {
+        "name": "Colis livrés aujourd'hui"
+      },
+      "parcels_late": {
+        "name": "Colis en retard"
+      }
     }
   }
 }

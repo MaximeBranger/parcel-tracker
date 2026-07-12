@@ -2,7 +2,29 @@
   "entity": {
     "sensor": {
       "parcel": {
-        "default": "mdi:package-variant"
+        "default": "mdi:package-variant",
+        "state": {
+          "delivered": "mdi:package-variant-closed-check",
+          "delayed": "mdi:alert-circle",
+          "incident": "mdi:alert",
+          "returned_to_sender": "mdi:keyboard-return",
+          "out_for_delivery": "mdi:truck-delivery"
+        }
+      },
+      "parcels_active": {
+        "default": "mdi:truck-fast"
+      },
+      "parcels_delivered": {
+        "default": "mdi:package-variant-closed-check"
+      },
+      "parcels_waiting": {
+        "default": "mdi:package-variant-closed-remove"
+      },
+      "parcels_today": {
+        "default": "mdi:calendar-today"
+      },
+      "parcels_late": {
+        "default": "mdi:alert-circle-outline"
       }
     }
   }
