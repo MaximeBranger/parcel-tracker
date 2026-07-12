@@ -5,7 +5,7 @@
 
 Intégration Home Assistant distribuée via [HACS](https://hacs.xyz) permettant de centraliser le suivi de tous vos colis, quel que soit le transporteur.
 
-L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**.
+L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**, **PostNord**.
 
 Voir [SPECIFICATIONS.md](SPECIFICATIONS.md) pour la spécification complète.
 
@@ -28,6 +28,7 @@ Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres 
 | DHL           | [developer.dhl.com](https://developer.dhl.com), API « Shipment Tracking - Unified » | Clé API                       |
 | UPS           | [developer.ups.com](https://developer.ups.com), créer une app avec le scope Track | Client ID + Client secret     |
 | Mondial Relay | Compte marchand Mondial Relay (identifiants webservice WSI2)                | Login (Enseigne) + Clé privée       |
+| PostNord      | [developer.postnord.com](https://developer.postnord.com) (compte gratuit)   | Clé API                              |
 
 Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification. Le détail des étapes pour obtenir chaque identifiant est ci-dessous.
 
@@ -69,6 +70,13 @@ Mondial Relay n'a pas de portail développeur en libre-service : l'accès au web
 2. Vous recevrez un **numéro d'enseigne** (identifiant marchand) : c'est le *Login* attendu par l'intégration.
 3. Vous recevrez également une **clé privée** associée à ce compte, utilisée pour signer les requêtes : c'est la *Clé privée* attendue par l'intégration.
 4. N'ayant pas d'environnement de test public, la validation des identifiants dans l'intégration se fait directement contre vos identifiants réels — assurez-vous qu'ils sont corrects avant de les saisir pour éviter des erreurs d'authentification répétées.
+
+### PostNord
+
+1. Créez un compte gratuit sur [developer.postnord.com](https://developer.postnord.com).
+2. Souscrivez au produit **Track & Trace** (plan gratuit disponible en production, pas seulement en sandbox).
+3. Récupérez la **clé API** générée : c'est la valeur à saisir dans le champ *Clé API PostNord* de l'intégration.
+4. PostNord ne publie pas de liste exhaustive de ses statuts de colis ; seuls quelques statuts sont mappés dans `providers/postnord.py`, les autres retombent sur « en transit » — signalez tout statut mal interprété observé en usage réel.
 
 ## Tester l'intégration en mode développement
 

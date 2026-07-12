@@ -12,7 +12,8 @@
           "ups_client_id": "UPS client ID",
           "ups_client_secret": "UPS client secret",
           "mondial_relay_login": "Mondial Relay login (Enseigne)",
-          "mondial_relay_private_key": "Mondial Relay private key"
+          "mondial_relay_private_key": "Mondial Relay private key",
+          "postnord_api_key": "PostNord API key"
         }
       },
       "reauth_confirm": {
@@ -26,7 +27,8 @@
           "ups_client_id": "UPS client ID",
           "ups_client_secret": "UPS client secret",
           "mondial_relay_login": "Mondial Relay login (Enseigne)",
-          "mondial_relay_private_key": "Mondial Relay private key"
+          "mondial_relay_private_key": "Mondial Relay private key",
+          "postnord_api_key": "PostNord API key"
         }
       },
       "reconfigure": {
@@ -40,7 +42,8 @@
           "ups_client_id": "UPS client ID",
           "ups_client_secret": "UPS client secret",
           "mondial_relay_login": "Mondial Relay login (Enseigne)",
-          "mondial_relay_private_key": "Mondial Relay private key"
+          "mondial_relay_private_key": "Mondial Relay private key",
+          "postnord_api_key": "PostNord API key"
         }
       }
     },
