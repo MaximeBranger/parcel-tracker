@@ -134,6 +134,7 @@ class ParcelSensor(CoordinatorEntity[ParcelTrackerCoordinator], SensorEntity):
             "last_update": parcel.last_update,
             "tracking_url": parcel.tracking_url,
             "days_since_shipping": self._days_since_shipping(parcel),
+            "last_error": parcel.last_error,
         }
 
     @staticmethod
