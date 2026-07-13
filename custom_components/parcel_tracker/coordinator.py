@@ -98,17 +98,19 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         """
         provider = self.providers.get(parcel.carrier)
         if provider is None:
+            error = f"No provider configured for carrier {parcel.carrier}"
             _LOGGER.warning(
                 "No provider configured for carrier %r (parcel %s)",
                 parcel.carrier,
                 parcel.display_name,
             )
+            parcel.last_error = error
             self.hass.bus.async_fire(
                 EVENT_PARCEL_ERROR,
                 {
                     "parcel_id": parcel.id,
                     "tracking_number": parcel.tracking_number,
-                    "error": f"No provider configured for carrier {parcel.carrier}",
+                    "error": error,
                 },
             )
             return
@@ -122,6 +124,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 parcel.tracking_number,
                 err,
             )
+            parcel.last_error = str(err)
             self.hass.bus.async_fire(
                 EVENT_PARCEL_ERROR,
                 {
@@ -131,6 +134,8 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 },
             )
             return
+
+        parcel.last_error = None
 
         previous_status = parcel.status
         previous_history_len = len(parcel.history)

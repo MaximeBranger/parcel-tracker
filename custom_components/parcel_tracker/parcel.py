@@ -22,6 +22,7 @@ class Parcel:
     last_location: str | None = None
     last_update: str | None = None
     tracking_url: str | None = None
+    last_error: str | None = None
     archived: bool = False
     created_at: str = ""
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
