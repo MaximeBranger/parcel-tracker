@@ -125,6 +125,7 @@ class ParcelSensor(CoordinatorEntity[ParcelTrackerCoordinator], SensorEntity):
     def extra_state_attributes(self) -> dict:
         parcel = self.coordinator.data[self._parcel_id]
         return {
+            "parcel_id": parcel.id,
             "tracking_number": parcel.tracking_number,
             "carrier": parcel.carrier,
             "notes": parcel.notes,
