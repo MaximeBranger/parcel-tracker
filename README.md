@@ -5,7 +5,7 @@
 
 Intégration Home Assistant distribuée via [HACS](https://hacs.xyz) permettant de centraliser le suivi de tous vos colis, quel que soit le transporteur.
 
-L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**, **PostNord**.
+L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**, **PostNord**, **DPD**.
 
 Voir [SPECIFICATIONS.md](SPECIFICATIONS.md) pour la spécification complète.
 
@@ -19,7 +19,7 @@ Via [HACS](https://hacs.xyz), en ajoutant ce dépôt comme dépôt personnalisé
 
 Lors de l'ajout de l'intégration, saisissez les identifiants développeur du ou des transporteurs que vous voulez suivre — tous sont optionnels, mais au moins un est requis. Vous pourrez en ajouter ou en corriger plus tard sans recréer l'intégration, via **Paramètres → Appareils et services → Parcel Tracker → Reconfigurer**.
 
-Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay). Ne les partagez pas et ne les commitez jamais dans un dépôt public.
+Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay et DPD). Ne les partagez pas et ne les commitez jamais dans un dépôt public.
 
 | Transporteur  | Où obtenir les identifiants                                                | Identifiants demandés               |
 |---------------|-----------------------------------------------------------------------------|--------------------------------------|
@@ -29,6 +29,7 @@ Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres 
 | UPS           | [developer.ups.com](https://developer.ups.com), créer une app avec le scope Track | Client ID + Client secret     |
 | Mondial Relay | Compte marchand Mondial Relay (identifiants webservice WSI2)                | Login (Enseigne) + Clé privée       |
 | PostNord      | [developer.postnord.com](https://developer.postnord.com) (compte gratuit)   | Clé API                              |
+| DPD           | Compte professionnel DPD Group (identifiants GeoService)                    | Login + Mot de passe                 |
 
 Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification. Le détail des étapes pour obtenir chaque identifiant est ci-dessous.
 
@@ -77,6 +78,15 @@ Mondial Relay n'a pas de portail développeur en libre-service : l'accès au web
 2. Souscrivez au produit **Track & Trace** (plan gratuit disponible en production, pas seulement en sandbox).
 3. Récupérez la **clé API** générée : c'est la valeur à saisir dans le champ *Clé API PostNord* de l'intégration.
 4. PostNord ne publie pas de liste exhaustive de ses statuts de colis ; seuls quelques statuts sont mappés dans `providers/postnord.py`, les autres retombent sur « en transit » — signalez tout statut mal interprété observé en usage réel.
+
+### DPD
+
+Comme Mondial Relay, DPD n'a pas de portail développeur en libre-service : l'accès à l'API de suivi (GeoService) est réservé aux comptes professionnels DPD Group.
+
+1. Contactez votre interlocuteur commercial DPD Group (ou le support DPD si vous avez déjà un compte expéditeur) pour demander l'activation de l'accès **GeoService**.
+2. Vous recevrez un **login** et un **mot de passe** : ce sont les valeurs attendues par l'intégration (*Identifiant DPD* / *Mot de passe DPD*).
+3. N'ayant pas d'environnement de test public, la validation se fait directement contre vos identifiants réels — assurez-vous qu'ils sont corrects avant de les saisir pour éviter des erreurs d'authentification répétées.
+4. Le contrat GeoService n'étant pas documenté publiquement, `providers/dpd.py` est une implémentation best-effort (mêmes réserves que Mondial Relay) : signalez tout comportement inattendu observé avec de vrais identifiants pour affiner le mapping des statuts.
 
 ## Tester l'intégration en mode développement
 

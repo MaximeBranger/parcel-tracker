@@ -88,7 +88,7 @@ Lorsqu'un colis est livré, il peut être archivé :
 
 ### Providers implémentés
 
-Six providers sont implémentés : **La Poste** (Colissimo, Chronopost, courrier suivi), **FedEx**, **DHL**, **UPS**, **Mondial Relay** et **PostNord**.
+Sept providers sont implémentés : **La Poste** (Colissimo, Chronopost, courrier suivi), **FedEx**, **DHL**, **UPS**, **Mondial Relay**, **PostNord** et **DPD**.
 
 ```text
 TrackingProvider
@@ -97,7 +97,8 @@ TrackingProvider
     ├── DHL              (Unified Tracking API, clé API)
     ├── UPS              (Track API v1, OAuth2 client_credentials)
     ├── Mondial Relay    (webservice WSI2, login + clé privée signée)
-    └── PostNord         (Track & Trace API v5, clé API)
+    ├── PostNord         (Track & Trace API v5, clé API)
+    └── DPD              (GeoService, login + mot de passe pro)
 ```
 
 Support (variable selon les données exposées par chaque API) :
@@ -107,7 +108,9 @@ Support (variable selon les données exposées par chaque API) :
 * Date de livraison estimée (non exposée par Mondial Relay au MVP)
 * Localisation (si disponible)
 
-Les autres transporteurs (GLS, DPD, Amazon Logistics…) restent hors périmètre. L'architecture provider (voir plus bas) reste conçue pour les accueillir sans refonte.
+Comme Mondial Relay, DPD n'a pas de portail développeur en libre-service : les identifiants (login + mot de passe) ne sont délivrés qu'aux expéditeurs sous contrat professionnel DPD Group, et le contrat GeoService suivi ici (`providers/dpd.py`) est une reconstitution best-effort à confirmer avec de vrais identifiants, pas une spec vérifiée.
+
+Les autres transporteurs (GLS, Amazon Logistics…) restent hors périmètre. L'architecture provider (voir plus bas) reste conçue pour les accueillir sans refonte.
 
 ### Détection automatique — reportée
 
@@ -138,6 +141,7 @@ Création de la config entry
 | UPS             | Client ID + Client secret                          | OAuth2 client_credentials         |
 | Mondial Relay   | Login (Enseigne) + Clé privée                      | Hash MD5 signé (webservice WSI2)  |
 | PostNord        | Clé API                                            | Clé API en paramètre de requête   |
+| DPD             | Login + mot de passe (compte pro DPD Group)        | Token de session (GeoService)     |
 
 Aucune clé n'est fournie ou partagée par le projet — cohérent avec « sans cloud propriétaire » : pas de quota mutualisé entre utilisateurs, pas de dépendance à un service tiers géré par le projet. Les identifiants d'un ou plusieurs transporteurs peuvent être ajoutés ou corrigés après la création de l'intégration via **Reconfigurer** (Paramètres → Appareils et services → Parcel Tracker).
 
@@ -377,7 +381,8 @@ custom_components/
     │   ├── dhl.py
     │   ├── ups.py
     │   ├── mondial_relay.py
-    │   └── postnord.py
+    │   ├── postnord.py
+    │   └── dpd.py
     ├── parcel.py             # modèle de données d'un colis (id, tracking_number, carrier, ...)
     ├── storage.py             # persistance .storage/parcel_tracker
     ├── services.py            # add / remove / refresh / archive / get_history
@@ -410,7 +415,8 @@ TrackingProvider
     ├── UPS
     ├── Mondial Relay
     ├── PostNord
-    └── ... (GLS, DPD, Amazon Logistics — non implémentés)
+    ├── DPD
+    └── ... (GLS, Amazon Logistics — non implémentés)
 ```
 
 Un provider n'est instancié que si ses identifiants sont configurés (voir [Authentification](#authentification-auprès-des-providers)) : `providers/registry.py` associe chaque transporteur aux clés de config qu'il attend et à sa classe. Si un colis référence un transporteur dont les identifiants ont été retirés, le coordinator émet un événement `parcel_error` au lieu d'échouer — les autres colis continuent d'être rafraîchis normalement.
@@ -431,10 +437,10 @@ Un provider n'est instancié que si ses identifiants sont configurés (voir [Aut
 
 ### V2 (en cours)
 
-* ✅ Providers supplémentaires : FedEx, DHL, UPS, Mondial Relay, PostNord
+* ✅ Providers supplémentaires : FedEx, DHL, UPS, Mondial Relay, PostNord, DPD
 * ✅ Sélection du transporteur à l'ajout/modification d'un colis (UI et services)
 * ✅ Identifiants par transporteur optionnels et modifiables après coup (`Reconfigurer`)
-* Providers restants : GLS, DPD
+* Providers restants : GLS
 * Détection automatique du transporteur (à partir du format du numéro de suivi)
 * Statistiques (nombre de colis, temps moyen de livraison, répartition par transporteur)
 * Gestion des expéditions (réception vs expédition)

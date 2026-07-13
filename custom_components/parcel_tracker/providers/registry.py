@@ -8,6 +8,7 @@ import aiohttp
 
 from ..const import (
     CARRIER_DHL,
+    CARRIER_DPD,
     CARRIER_FEDEX,
     CARRIER_LAPOSTE,
     CARRIER_MONDIAL_RELAY,
@@ -15,6 +16,8 @@ from ..const import (
     CARRIER_UPS,
     CONF_API_KEY,
     CONF_DHL_API_KEY,
+    CONF_DPD_LOGIN,
+    CONF_DPD_PASSWORD,
     CONF_FEDEX_CLIENT_ID,
     CONF_FEDEX_CLIENT_SECRET,
     CONF_MONDIAL_RELAY_LOGIN,
@@ -25,6 +28,7 @@ from ..const import (
 )
 from .base import TrackingProvider
 from .dhl import DhlProvider
+from .dpd import DpdProvider
 from .fedex import FedExProvider
 from .laposte import LaPosteProvider
 from .mondial_relay import MondialRelayProvider
@@ -40,6 +44,7 @@ CARRIER_CONFIG_KEYS: dict[str, tuple[str, ...]] = {
     CARRIER_UPS: (CONF_UPS_CLIENT_ID, CONF_UPS_CLIENT_SECRET),
     CARRIER_MONDIAL_RELAY: (CONF_MONDIAL_RELAY_LOGIN, CONF_MONDIAL_RELAY_PRIVATE_KEY),
     CARRIER_POSTNORD: (CONF_POSTNORD_API_KEY,),
+    CARRIER_DPD: (CONF_DPD_LOGIN, CONF_DPD_PASSWORD),
 }
 
 _PROVIDER_CLASSES: dict[str, Callable[..., TrackingProvider]] = {
@@ -49,6 +54,7 @@ _PROVIDER_CLASSES: dict[str, Callable[..., TrackingProvider]] = {
     CARRIER_UPS: UpsProvider,
     CARRIER_MONDIAL_RELAY: MondialRelayProvider,
     CARRIER_POSTNORD: PostNordProvider,
+    CARRIER_DPD: DpdProvider,
 }
 
 
