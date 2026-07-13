@@ -17,6 +17,8 @@ from .const import (
     CARRIER_LABELS,
     CONF_API_KEY,
     CONF_DHL_API_KEY,
+    CONF_DPD_LOGIN,
+    CONF_DPD_PASSWORD,
     CONF_FEDEX_CLIENT_ID,
     CONF_FEDEX_CLIENT_SECRET,
     CONF_MONDIAL_RELAY_LOGIN,
@@ -56,6 +58,8 @@ CARRIER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_MONDIAL_RELAY_LOGIN, default=""): str,
         vol.Optional(CONF_MONDIAL_RELAY_PRIVATE_KEY, default=""): _PASSWORD_SELECTOR,
         vol.Optional(CONF_POSTNORD_API_KEY, default=""): _PASSWORD_SELECTOR,
+        vol.Optional(CONF_DPD_LOGIN, default=""): str,
+        vol.Optional(CONF_DPD_PASSWORD, default=""): _PASSWORD_SELECTOR,
     }
 )
 

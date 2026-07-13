@@ -13,7 +13,9 @@
           "ups_client_secret": "Clé secrète client UPS",
           "mondial_relay_login": "Identifiant Mondial Relay (Enseigne)",
           "mondial_relay_private_key": "Clé privée Mondial Relay",
-          "postnord_api_key": "Clé API PostNord"
+          "postnord_api_key": "Clé API PostNord",
+          "dpd_login": "Identifiant DPD",
+          "dpd_password": "Mot de passe DPD"
         }
       },
       "reauth_confirm": {
@@ -28,7 +30,9 @@
           "ups_client_secret": "Clé secrète client UPS",
           "mondial_relay_login": "Identifiant Mondial Relay (Enseigne)",
           "mondial_relay_private_key": "Clé privée Mondial Relay",
-          "postnord_api_key": "Clé API PostNord"
+          "postnord_api_key": "Clé API PostNord",
+          "dpd_login": "Identifiant DPD",
+          "dpd_password": "Mot de passe DPD"
         }
       },
       "reconfigure": {
@@ -43,7 +47,9 @@
           "ups_client_secret": "Clé secrète client UPS",
           "mondial_relay_login": "Identifiant Mondial Relay (Enseigne)",
           "mondial_relay_private_key": "Clé privée Mondial Relay",
-          "postnord_api_key": "Clé API PostNord"
+          "postnord_api_key": "Clé API PostNord",
+          "dpd_login": "Identifiant DPD",
+          "dpd_password": "Mot de passe DPD"
         }
       }
     },
