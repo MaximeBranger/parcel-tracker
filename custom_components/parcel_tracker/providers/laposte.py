@@ -47,6 +47,7 @@ TIMELINE_STATUS_MAP: dict[str, str] = {
     "livraison en cours": STATUS_OUT_FOR_DELIVERY,
     "livré": STATUS_DELIVERED,
     "distribué": STATUS_DELIVERED,
+    "retiré": STATUS_DELIVERED,
     "anomalie": STATUS_INCIDENT,
     "incident": STATUS_INCIDENT,
     "retour expéditeur": STATUS_RETURNED_TO_SENDER,
