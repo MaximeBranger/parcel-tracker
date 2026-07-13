@@ -61,21 +61,30 @@ def _get_coordinator(hass: HomeAssistant) -> ParcelTrackerCoordinator:
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Register the parcel_tracker services."""
 
-    async def async_add(call: ServiceCall) -> None:
-        """Add a new parcel to track."""
+    async def async_add(call: ServiceCall) -> ServiceResponse:
+        """Add a new parcel to track.
+
+        The initial carrier lookup runs synchronously as part of this call
+        (see ParcelTrackerCoordinator.async_add_parcel), so any lookup
+        failure is already known by the time this returns — report it
+        directly in the response rather than relying on callers to also
+        catch the `parcel_error` event, which fires before they can
+        possibly have subscribed to it.
+        """
         coordinator = _get_coordinator(hass)
-        await coordinator.async_add_parcel(
+        parcel = await coordinator.async_add_parcel(
             tracking_number=call.data["tracking_number"],
             carrier=call.data["carrier"],
             name=call.data["name"],
             notes=call.data["notes"],
         )
+        return {"error": parcel.last_error}
 
-    async def async_update(call: ServiceCall) -> None:
+    async def async_update(call: ServiceCall) -> ServiceResponse:
         """Edit a tracked parcel's name, notes and/or tracking number."""
         coordinator = _get_coordinator(hass)
         try:
-            await coordinator.async_update_parcel(
+            parcel = await coordinator.async_update_parcel(
                 call.data["parcel_id"],
                 tracking_number=call.data.get("tracking_number"),
                 carrier=call.data.get("carrier"),
@@ -84,6 +93,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
         except ParcelNotFoundError as err:
             raise HomeAssistantError(str(err)) from err
+        return {"error": parcel.last_error}
 
     async def async_remove(call: ServiceCall) -> None:
         """Permanently remove a tracked parcel."""
@@ -127,9 +137,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator(hass)
         return {"carriers": list(coordinator.providers)}
 
-    hass.services.async_register(DOMAIN, SERVICE_ADD, async_add, schema=ADD_SCHEMA)
     hass.services.async_register(
-        DOMAIN, SERVICE_UPDATE, async_update, schema=UPDATE_SCHEMA
+        DOMAIN,
+        SERVICE_ADD,
+        async_add,
+        schema=ADD_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE,
+        async_update,
+        schema=UPDATE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(
         DOMAIN, SERVICE_REMOVE, async_remove, schema=PARCEL_ID_SCHEMA
