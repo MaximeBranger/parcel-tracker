@@ -130,7 +130,7 @@ Au premier lancement, l'assistant de configuration se termine sur `http://localh
 
 ### 5. Ajouter l'intégration
 
-Dans l'interface : **Paramètres → Appareils et services → Ajouter une intégration → Parcel Tracker**, puis saisissez les identifiants d'au moins un transporteur (voir [Configuration](#configuration)). Chaque transporteur renseigné est validé par un appel de test au moment de la soumission (voir `config_flow.py`) ; des identifiants invalides affichent une erreur sur le champ concerné sans créer l'entrée.
+Dans l'interface : **Paramètres → Appareils et services → Ajouter une intégration → Parcel Tracker**, puis saisissez les identifiants d'au moins un transporteur (voir [Configuration](#configuration)). Chaque transporteur renseigné est validé par un appel de test au moment de la soumission (voir `config_flow.py`) ; des identifiants invalides affichent une erreur sur le champ concerné sans créer l'entrée. Exception : **La Poste** n'a pas de numéro de suivi valable à la fois en sandbox et en production, donc sa clé n'est pas pré-validée — une clé invalide ne sera détectée qu'au premier suivi réel (logs + événement `parcel_error`).
 
 ### 6. Piloter les colis
 
@@ -142,9 +142,11 @@ Les colis ne passent pas par un flow de configuration séparé (une seule config
 ```yaml
 action: parcel_tracker.add
 data:
-  tracking_number: "8Q00000000000"   # numéro de test fourni par La Poste
+  tracking_number: "8Q00000000000"   # numéro de test La Poste (sandbox uniquement, échoue avec une clé de prod)
   name: "Colis de test"
 ```
+
+Avec une clé La Poste de production, remplacez ce numéro par un vrai numéro de suivi Colissimo/Chronopost : les numéros de test documentés par La Poste ne fonctionnent qu'avec une clé sandbox.
 
 Vérifiez ensuite :
 

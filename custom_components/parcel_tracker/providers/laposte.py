@@ -32,11 +32,6 @@ PUBLIC_TRACKING_URL = (
     "https://www.laposte.fr/outils/suivre-vos-envois?code={tracking_number}"
 )
 
-# One of the fixed tracking numbers La Poste's sandbox dataset documents as
-# always returning a 200 with dummy shipment data, used to validate an API
-# key without tracking a real parcel.
-TEST_TRACKING_NUMBER = "8K00009775862"
-
 # La Poste's `timeline` exposes a small, stable set of macro delivery steps
 # (unlike the much larger and undocumented `event` code list). We match on
 # the French `shortLabel` of the last reached step. Unrecognized labels fall
@@ -69,14 +64,17 @@ class LaPosteProvider(TrackingProvider):
         self._session = session
 
     async def async_validate_credentials(self) -> None:
-        """Raise if the configured API key is rejected by La Poste."""
-        await self.async_track(TEST_TRACKING_NUMBER)
+        """No-op: La Poste has no tracking number valid for both sandbox and
+        production keys, so there is no way to probe a key without tracking
+        a real parcel. A rejected key surfaces later, in the logs and via
+        `parcel_error`, when the first real tracking number is refreshed.
+        """
 
     async def async_track(self, tracking_number: str) -> dict[str, Any]:
         """Fetch and normalize the tracking status for a single parcel."""
         async with self._session.get(
             f"{API_BASE_URL}/{tracking_number}",
-            headers={"X-Okapi-Key": self._api_key},
+            headers={"X-Okapi-Key": self._api_key, "Accept": "application/json"},
             params={"lang": "fr_FR"},
         ) as response:
             if response.status == 401:
