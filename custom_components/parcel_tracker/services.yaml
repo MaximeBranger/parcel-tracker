@@ -22,6 +22,9 @@ add:
     notes:
       selector:
         text:
+    notify_target:
+      selector:
+        text:
 update:
   name: Update parcel
   description: Edit a tracked parcel's name, notes, carrier and/or tracking number without recreating its entity.
@@ -47,6 +50,9 @@ update:
       selector:
         text:
     notes:
+      selector:
+        text:
+    notify_target:
       selector:
         text:
 remove:
@@ -86,3 +92,6 @@ get_history:
 get_configured_carriers:
   name: Get configured carriers
   description: Return the carriers with credentials configured on this entry.
+get_notify_targets:
+  name: Get notify targets
+  description: Return the notify entities and legacy notify services a parcel can be pushed to.

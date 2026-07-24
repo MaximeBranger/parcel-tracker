@@ -129,6 +129,7 @@ class ParcelSensor(CoordinatorEntity[ParcelTrackerCoordinator], SensorEntity):
             "tracking_number": parcel.tracking_number,
             "carrier": parcel.carrier,
             "notes": parcel.notes,
+            "notify_target": parcel.notify_target,
             "history": parcel.history,
             "estimated_delivery": parcel.estimated_delivery,
             "last_location": parcel.last_location,

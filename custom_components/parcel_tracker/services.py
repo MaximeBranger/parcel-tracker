@@ -10,6 +10,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import ALL_CARRIERS, CARRIER_LAPOSTE, DOMAIN
 from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
+from .notify_targets import list_notify_targets
 
 SERVICE_ADD = "add"
 SERVICE_UPDATE = "update"
@@ -18,6 +19,7 @@ SERVICE_REFRESH = "refresh"
 SERVICE_ARCHIVE = "archive"
 SERVICE_GET_HISTORY = "get_history"
 SERVICE_GET_CONFIGURED_CARRIERS = "get_configured_carriers"
+SERVICE_GET_NOTIFY_TARGETS = "get_notify_targets"
 
 ADD_SCHEMA = vol.Schema(
     {
@@ -25,6 +27,7 @@ ADD_SCHEMA = vol.Schema(
         vol.Optional("carrier", default=CARRIER_LAPOSTE): vol.In(ALL_CARRIERS),
         vol.Optional("name", default=""): cv.string,
         vol.Optional("notes", default=""): cv.string,
+        vol.Optional("notify_target", default=""): cv.string,
     }
 )
 UPDATE_SCHEMA = vol.Schema(
@@ -34,6 +37,7 @@ UPDATE_SCHEMA = vol.Schema(
         vol.Optional("carrier"): vol.In(ALL_CARRIERS),
         vol.Optional("name"): cv.string,
         vol.Optional("notes"): cv.string,
+        vol.Optional("notify_target"): cv.string,
     }
 )
 PARCEL_ID_SCHEMA = vol.Schema({vol.Required("parcel_id"): cv.string})
@@ -77,6 +81,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             carrier=call.data["carrier"],
             name=call.data["name"],
             notes=call.data["notes"],
+            notify_target=call.data["notify_target"],
         )
         return {"error": parcel.last_error}
 
@@ -90,6 +95,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 carrier=call.data.get("carrier"),
                 name=call.data.get("name"),
                 notes=call.data.get("notes"),
+                notify_target=call.data.get("notify_target"),
             )
         except ParcelNotFoundError as err:
             raise HomeAssistantError(str(err)) from err
@@ -137,6 +143,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinator = _get_coordinator(hass)
         return {"carriers": list(coordinator.providers)}
 
+    async def async_get_notify_targets(call: ServiceCall) -> ServiceResponse:
+        """Return the notify entities/services a parcel can be pushed to.
+
+        Mirrors get_configured_carriers: lets a frontend (e.g. the
+        parcel_tracker-card add/edit form) populate the same notify target
+        picker as ParcelTrackerOptionsFlow's own form, without needing
+        entity-registry access itself.
+        """
+        return {"targets": list_notify_targets(hass)}
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_ADD,
@@ -171,6 +187,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_get_configured_carriers,
         supports_response=SupportsResponse.ONLY,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_NOTIFY_TARGETS,
+        async_get_notify_targets,
+        supports_response=SupportsResponse.ONLY,
+    )
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -183,5 +205,6 @@ def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_ARCHIVE,
         SERVICE_GET_HISTORY,
         SERVICE_GET_CONFIGURED_CARRIERS,
+        SERVICE_GET_NOTIFY_TARGETS,
     ):
         hass.services.async_remove(DOMAIN, service)
