@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import entity_registry as er, selector
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -29,6 +29,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
+from .notify_targets import list_notify_targets
 from .providers import (
     CARRIER_CONFIG_KEYS,
     ParcelTrackerApiError,
@@ -68,29 +69,13 @@ _NO_NOTIFY_LABEL = {"fr": "Aucune notification", "en": "No notification"}
 
 
 def _notify_target_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
-    """List possible notify targets: modern notify entities and legacy notify services.
-
-    Home Assistant moved from one service per target (e.g.
-    `notify.mobile_app_phone`) to entities called through
-    `notify.send_message`, but many notify integrations (and older installs)
-    still only expose their targets the old way, so both are offered here.
-    `send_message` itself is excluded from the service list since it's the
-    generic dispatcher, not a target.
-    """
+    """List possible notify targets as select options, with a "none" entry first."""
     lang = "fr" if hass.config.language.startswith("fr") else "en"
     options = [selector.SelectOptionDict(value="", label=_NO_NOTIFY_LABEL[lang])]
-
-    registry = er.async_get(hass)
-    entity_ids = sorted(
-        entry.entity_id for entry in registry.entities.values() if entry.domain == "notify"
-    )
     options.extend(
-        selector.SelectOptionDict(value=entity_id, label=entity_id) for entity_id in entity_ids
+        selector.SelectOptionDict(value=target, label=target)
+        for target in list_notify_targets(hass)
     )
-
-    services = sorted(hass.services.async_services().get("notify", {}).keys() - {"send_message"})
-    options.extend(selector.SelectOptionDict(value=service, label=service) for service in services)
-
     return options
 
 

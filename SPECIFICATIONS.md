@@ -253,7 +253,7 @@ Le composant expose :
 
 * des **entités** dont l'état change avec le statut du colis ;
 * des **événements** Home Assistant à chaque transition significative ;
-* une **notification native optionnelle, par colis** : le champ `notify_target` (formulaire d'ajout/modification, options flow uniquement — pas exposé dans les services YAML) permet de choisir une cible parmi les entités du domaine `notify` et les services legacy encore enregistrés sous ce domaine (Home Assistant a fait cohabiter les deux formats lors de sa migration vers les entités `notify`). Quand ce champ est renseigné, le coordinator appelle cette cible (`notify.send_message` pour une entité, `notify.<service>` pour un service legacy) exactement quand il émet `parcel_updated` (même condition : statut ou historique modifié) — jamais sur `parcel_error`, pour ne pas spammer sur une clé API cassée. Le message envoyé est `"{nom du colis} : {dernier libellé d'historique}"`, avec repli sur le statut simplifié traduit si l'historique n'a pas encore de libellé exploitable. Un échec d'envoi (cible supprimée/indisponible) est journalisé (`_LOGGER.warning`) sans jamais interrompre le rafraîchissement des autres colis.
+* une **notification native optionnelle, par colis** : le champ `notify_target` permet de choisir une cible parmi les entités du domaine `notify` et les services legacy encore enregistrés sous ce domaine (Home Assistant a fait cohabiter les deux formats lors de sa migration vers les entités `notify`). Réglable aussi bien via l'options flow (formulaire d'ajout/modification natif) que via les services `add`/`update` et donc depuis `parcel_tracker-card` — `get_notify_targets` retourne la même liste de cibles possibles que celle utilisée par l'options flow (voir [Services Home Assistant](#services-home-assistant)), et la valeur choisie est exposée en attribut d'entité pour préremplir un formulaire externe. Quand ce champ est renseigné, le coordinator appelle cette cible (`notify.send_message` pour une entité, `notify.<service>` pour un service legacy) exactement quand il émet `parcel_updated` (même condition : statut ou historique modifié) — jamais sur `parcel_error`, pour ne pas spammer sur une clé API cassée. Le message envoyé est `"{nom du colis} : {dernier libellé d'historique}"`, avec repli sur le statut simplifié traduit si l'historique n'a pas encore de libellé exploitable. Un échec d'envoi (cible supprimée/indisponible) est journalisé (`_LOGGER.warning`) sans jamais interrompre le rafraîchissement des autres colis.
 
 En dehors de ce cas, c'est à l'utilisateur de construire ses propres automatisations (TTS, éclairage, notification vers une autre cible, etc.) à partir des événements et entités — c'est l'usage idiomatique des intégrations HA. Les exemples suivants illustrent ce que l'utilisateur peut construire en plus de la notification native :
 
@@ -292,6 +292,7 @@ Attributs :
 
 * `tracking_number`
 * `carrier`
+* `notify_target`
 * `history`
 * `estimated_delivery`
 * `last_update`
@@ -326,6 +327,7 @@ En plus des services, un menu accessible via **Paramètres → Appareils et serv
 * `parcel_tracker.archive`
 * `parcel_tracker.get_history` — retourne l'historique des colis (actifs et archivés), filtrable par mois, année et transporteur. C'est la voie d'accès principale pour consulter les colis archivés et implémenter les filtres, puisque le registre d'entités HA n'est pas fait pour ce type de requête.
 * `parcel_tracker.get_configured_carriers` — retourne les transporteurs dont les identifiants sont configurés sur cette entrée (`list(coordinator.providers)`). Permet à un frontend (ex. `parcel_tracker-card`) de ne proposer que ces transporteurs dans son propre formulaire d'ajout/modification, sans avoir accès aux données de la config entry — même logique que le scoping déjà fait par `ParcelTrackerOptionsFlow._configured_carriers` pour son propre formulaire.
+* `parcel_tracker.get_notify_targets` — retourne les cibles de notification disponibles (entités du domaine `notify` et services legacy encore enregistrés sous ce domaine), pour peupler le sélecteur `notify_target` d'un frontend (ex. `parcel_tracker-card`) — même logique de partage que `get_configured_carriers`, via `notify_targets.list_notify_targets`, aussi utilisée par `ParcelTrackerOptionsFlow`.
 
 ---
 
