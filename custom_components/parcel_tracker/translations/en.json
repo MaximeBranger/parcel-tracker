@@ -80,7 +80,8 @@
           "tracking_number": "Tracking number",
           "carrier": "Carrier",
           "name": "Name",
-          "notes": "Notes"
+          "notes": "Notes",
+          "notify_target": "Notify on status change"
         }
       },
       "select_parcel": {
@@ -104,7 +105,8 @@
           "tracking_number": "Tracking number",
           "carrier": "Carrier",
           "name": "Name",
-          "notes": "Notes"
+          "notes": "Notes",
+          "notify_target": "Notify on status change"
         }
       },
       "archive_parcel": {

@@ -80,7 +80,8 @@
           "tracking_number": "Numéro de suivi",
           "carrier": "Transporteur",
           "name": "Nom",
-          "notes": "Notes"
+          "notes": "Notes",
+          "notify_target": "Notifier à chaque changement de statut"
         }
       },
       "select_parcel": {
@@ -104,7 +105,8 @@
           "tracking_number": "Numéro de suivi",
           "carrier": "Transporteur",
           "name": "Nom",
-          "notes": "Notes"
+          "notes": "Notes",
+          "notify_target": "Notifier à chaque changement de statut"
         }
       },
       "archive_parcel": {
