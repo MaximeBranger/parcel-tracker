@@ -74,6 +74,23 @@ ALL_STATUSES = [
     STATUS_RETURNED_TO_SENDER,
 ]
 
+# Fallback wording for notify_target notifications when a carrier's history
+# has no usable label yet (see coordinator.py:_async_notify_status_change).
+# Mirrors translations/fr.json's entity.sensor.parcel.state strings, which
+# can't be reused directly since that push text is composed outside of HA's
+# own (async) translation lookup.
+STATUS_LABELS: dict[str, str] = {
+    STATUS_CREATED: "Créé",
+    STATUS_TAKEN_IN_CHARGE: "Pris en charge",
+    STATUS_IN_TRANSIT: "En transit",
+    STATUS_AT_SORTING_CENTER: "Arrivé au centre de tri",
+    STATUS_OUT_FOR_DELIVERY: "En livraison",
+    STATUS_DELIVERED: "Livré",
+    STATUS_DELAYED: "Retard",
+    STATUS_INCIDENT: "Incident",
+    STATUS_RETURNED_TO_SENDER: "Retour expéditeur",
+}
+
 # Home Assistant events, as listed in SPECIFICATIONS.md.
 EVENT_PARCEL_ADDED = "parcel_added"
 EVENT_PARCEL_UPDATED = "parcel_updated"

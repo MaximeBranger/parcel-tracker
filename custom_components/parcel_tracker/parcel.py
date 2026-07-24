@@ -16,6 +16,7 @@ class Parcel:
     carrier: str = CARRIER_LAPOSTE
     name: str = ""
     notes: str = ""
+    notify_target: str = ""
     status: str = STATUS_CREATED
     history: list[dict] = field(default_factory=list)
     estimated_delivery: str | None = None

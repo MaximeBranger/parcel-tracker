@@ -8,9 +8,9 @@ import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
+from homeassistant.helpers import entity_registry as er, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
@@ -64,7 +64,42 @@ CARRIER_DATA_SCHEMA = vol.Schema(
 )
 
 
-def _parcel_fields_schema(carriers: list[str], *, default_carrier: str) -> vol.Schema:
+_NO_NOTIFY_LABEL = {"fr": "Aucune notification", "en": "No notification"}
+
+
+def _notify_target_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
+    """List possible notify targets: modern notify entities and legacy notify services.
+
+    Home Assistant moved from one service per target (e.g.
+    `notify.mobile_app_phone`) to entities called through
+    `notify.send_message`, but many notify integrations (and older installs)
+    still only expose their targets the old way, so both are offered here.
+    `send_message` itself is excluded from the service list since it's the
+    generic dispatcher, not a target.
+    """
+    lang = "fr" if hass.config.language.startswith("fr") else "en"
+    options = [selector.SelectOptionDict(value="", label=_NO_NOTIFY_LABEL[lang])]
+
+    registry = er.async_get(hass)
+    entity_ids = sorted(
+        entry.entity_id for entry in registry.entities.values() if entry.domain == "notify"
+    )
+    options.extend(
+        selector.SelectOptionDict(value=entity_id, label=entity_id) for entity_id in entity_ids
+    )
+
+    services = sorted(hass.services.async_services().get("notify", {}).keys() - {"send_message"})
+    options.extend(selector.SelectOptionDict(value=service, label=service) for service in services)
+
+    return options
+
+
+def _parcel_fields_schema(
+    carriers: list[str],
+    *,
+    default_carrier: str,
+    notify_options: list[selector.SelectOptionDict],
+) -> vol.Schema:
     """Build the add/edit parcel form, scoped to the entry's configured carriers."""
     return vol.Schema(
         {
@@ -79,6 +114,9 @@ def _parcel_fields_schema(carriers: list[str], *, default_carrier: str) -> vol.S
             ),
             vol.Optional("name", default=""): str,
             vol.Optional("notes", default=""): str,
+            vol.Optional("notify_target", default=""): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=notify_options)
+            ),
         }
     )
 
@@ -225,13 +263,16 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
                 carrier=user_input["carrier"],
                 name=user_input["name"],
                 notes=user_input["notes"],
+                notify_target=user_input["notify_target"],
             )
             return await self.async_step_init()
 
         return self.async_show_form(
             step_id="add_parcel",
             data_schema=_parcel_fields_schema(
-                self._configured_carriers, default_carrier=self._configured_carriers[0]
+                self._configured_carriers,
+                default_carrier=self._configured_carriers[0],
+                notify_options=_notify_target_options(self.hass),
             ),
         )
 
@@ -293,6 +334,7 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
                 carrier=user_input["carrier"],
                 name=user_input["name"],
                 notes=user_input["notes"],
+                notify_target=user_input["notify_target"],
             )
             return await self.async_step_init()
 
@@ -306,12 +348,17 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="edit_parcel",
             data_schema=self.add_suggested_values_to_schema(
-                _parcel_fields_schema(carriers, default_carrier=parcel.carrier),
+                _parcel_fields_schema(
+                    carriers,
+                    default_carrier=parcel.carrier,
+                    notify_options=_notify_target_options(self.hass),
+                ),
                 {
                     "tracking_number": parcel.tracking_number,
                     "carrier": parcel.carrier,
                     "name": parcel.name,
                     "notes": parcel.notes,
+                    "notify_target": parcel.notify_target,
                 },
             ),
             description_placeholders={"parcel_name": parcel.display_name},

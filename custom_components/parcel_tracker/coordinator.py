@@ -9,6 +9,7 @@ import aiohttp
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -27,6 +28,7 @@ from .const import (
     SIGNAL_PARCEL_REMOVED,
     STATUS_DELAYED,
     STATUS_DELIVERED,
+    STATUS_LABELS,
     STATUS_RETURNED_TO_SENDER,
 )
 from .parcel import Parcel
@@ -167,6 +169,43 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
                 {"parcel_id": parcel.id, "tracking_number": parcel.tracking_number},
             )
 
+        await self._async_notify_status_change(parcel)
+
+    async def _async_notify_status_change(self, parcel: Parcel) -> None:
+        """Push a message to the parcel's configured notify target, if any.
+
+        A notify target can be either a modern notify entity (called via
+        notify.send_message) or a legacy per-device notify service (called
+        directly as notify.<target>) — Home Assistant still has both in the
+        wild. A broken or removed target must not break the refresh of other
+        parcels, so failures are only logged, same as provider errors above.
+        """
+        if not parcel.notify_target:
+            return
+
+        label = parcel.history[-1].get("label") if parcel.history else None
+        if not label:
+            label = STATUS_LABELS.get(parcel.status, parcel.status)
+        message = f"{parcel.display_name} : {label}"
+
+        target = parcel.notify_target
+        try:
+            if self.hass.states.get(target) is not None:
+                await self.hass.services.async_call(
+                    "notify",
+                    "send_message",
+                    {"entity_id": target, "message": message},
+                    blocking=True,
+                )
+            else:
+                await self.hass.services.async_call(
+                    "notify", target, {"message": message}, blocking=True
+                )
+        except HomeAssistantError as err:
+            _LOGGER.warning(
+                "Failed to notify for parcel %s via %s: %s", parcel.display_name, target, err
+            )
+
     @staticmethod
     def _is_overdue(parcel: Parcel) -> bool:
         """Derive the "Retard" status: La Poste has no such timeline step."""
@@ -187,6 +226,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         name: str = "",
         notes: str = "",
         carrier: str = CARRIER_LAPOSTE,
+        notify_target: str = "",
     ) -> Parcel:
         """Add a new parcel and start tracking it immediately."""
         parcel = Parcel(
@@ -194,6 +234,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             carrier=carrier,
             name=name,
             notes=notes,
+            notify_target=notify_target,
             created_at=datetime.now(timezone.utc).isoformat(),
         )
         self._parcels[parcel.id] = parcel
@@ -229,6 +270,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         name: str | None = None,
         notes: str | None = None,
         carrier: str | None = None,
+        notify_target: str | None = None,
     ) -> Parcel:
         """Edit a tracked parcel's editable fields.
 
@@ -248,6 +290,8 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             parcel.name = name
         if notes is not None:
             parcel.notes = notes
+        if notify_target is not None:
+            parcel.notify_target = notify_target
 
         if needs_refresh and not parcel.archived:
             await self._async_refresh_parcel(parcel)

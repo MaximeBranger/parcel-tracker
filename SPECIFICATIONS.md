@@ -58,6 +58,7 @@ Informations :
 * Transporteur — au choix parmi les providers configurés (voir [Providers](#providers))
 * Date d'ajout
 * Notes (optionnel)
+* Cible de notification (optionnel) — voir [Notifications et automatisations](#notifications-et-automatisations)
 
 #### Modifier un colis
 
@@ -67,6 +68,7 @@ L'utilisateur peut modifier :
 * les notes
 * le numéro de suivi
 * le transporteur *(dès qu'un second provider existe)*
+* la cible de notification
 
 Modifier le numéro de suivi **ne recrée pas l'entité** — voir [Identité de l'entité](#identité-de-lentité).
 
@@ -247,12 +249,13 @@ Selon les informations disponibles :
 
 ## Notifications et automatisations
 
-Le composant **n'envoie aucune notification lui-même** au MVP. Il expose :
+Le composant expose :
 
 * des **entités** dont l'état change avec le statut du colis ;
-* des **événements** Home Assistant à chaque transition significative.
+* des **événements** Home Assistant à chaque transition significative ;
+* une **notification native optionnelle, par colis** : le champ `notify_target` (formulaire d'ajout/modification, options flow uniquement — pas exposé dans les services YAML) permet de choisir une cible parmi les entités du domaine `notify` et les services legacy encore enregistrés sous ce domaine (Home Assistant a fait cohabiter les deux formats lors de sa migration vers les entités `notify`). Quand ce champ est renseigné, le coordinator appelle cette cible (`notify.send_message` pour une entité, `notify.<service>` pour un service legacy) exactement quand il émet `parcel_updated` (même condition : statut ou historique modifié) — jamais sur `parcel_error`, pour ne pas spammer sur une clé API cassée. Le message envoyé est `"{nom du colis} : {dernier libellé d'historique}"`, avec repli sur le statut simplifié traduit si l'historique n'a pas encore de libellé exploitable. Un échec d'envoi (cible supprimée/indisponible) est journalisé (`_LOGGER.warning`) sans jamais interrompre le rafraîchissement des autres colis.
 
-C'est à l'utilisateur de construire ses propres automatisations (notification mobile, TTS, éclairage, etc.) à partir de ces événements et entités — c'est l'usage idiomatique des intégrations HA (elles exposent des données, elles ne décident pas comment réagir). Les exemples suivants illustrent ce que l'utilisateur peut construire, pas une fonctionnalité livrée :
+En dehors de ce cas, c'est à l'utilisateur de construire ses propres automatisations (TTS, éclairage, notification vers une autre cible, etc.) à partir des événements et entités — c'est l'usage idiomatique des intégrations HA. Les exemples suivants illustrent ce que l'utilisateur peut construire en plus de la notification native :
 
 ```text
 📦 Votre colis Amazon est en livraison.
@@ -464,6 +467,6 @@ Un provider n'est instancié que si ses identifiants sont configurés (voir [Aut
 * Stockage local dans `.storage`
 * Un seul `DataUpdateCoordinator`, intervalle de rafraîchissement fixe
 * `unique_id` des entités colis basé sur un identifiant interne stable, jamais sur le numéro de suivi
-* Pas de notification native : l'intégration expose des entités et événements, l'utilisateur construit ses automatisations
+* Notification native optionnelle par colis (`notify_target`), en plus des entités et événements exposés pour les automatisations de l'utilisateur
 * API interne basée sur les services et événements Home Assistant
 * Compatibilité avec les automatisations, tableaux de bord et assistants vocaux
