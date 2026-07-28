@@ -5,7 +5,7 @@
 
 Intégration Home Assistant distribuée via [HACS](https://hacs.xyz) permettant de centraliser le suivi de tous vos colis, quel que soit le transporteur.
 
-L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**, **PostNord**, **DPD**.
+L'intégration fonctionne de manière autonome, sans service externe : elle interroge directement l'API de chaque transporteur configuré et stocke les données localement dans `.storage/`. Transporteurs pris en charge : **La Poste** (Colissimo, Chronopost, lettre suivie), **FedEx**, **DHL**, **UPS**, **Mondial Relay**, **PostNord**, **DPD**, **GLS**.
 
 Voir [SPECIFICATIONS.md](SPECIFICATIONS.md) pour la spécification complète.
 
@@ -19,7 +19,7 @@ Via [HACS](https://hacs.xyz), en ajoutant ce dépôt comme dépôt personnalisé
 
 Lors de l'ajout de l'intégration, saisissez les identifiants développeur du ou des transporteurs que vous voulez suivre — tous sont optionnels, mais au moins un est requis. Vous pourrez en ajouter ou en corriger plus tard sans recréer l'intégration, via **Paramètres → Appareils et services → Parcel Tracker → Reconfigurer**.
 
-Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay et DPD). Ne les partagez pas et ne les commitez jamais dans un dépôt public.
+Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay et DPD). Ne les partagez pas et ne les commitez jamais dans un dépôt public. GLS ne demande aucun identifiant : voir la section dédiée ci-dessous.
 
 | Transporteur  | Où obtenir les identifiants                                                | Identifiants demandés               |
 |---------------|-----------------------------------------------------------------------------|--------------------------------------|
@@ -30,6 +30,7 @@ Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres 
 | Mondial Relay | Compte marchand Mondial Relay (identifiants webservice WSI2)                | Login (Enseigne) + Clé privée       |
 | PostNord      | [developer.postnord.com](https://developer.postnord.com) (compte gratuit)   | Clé API                              |
 | DPD           | Compte professionnel DPD Group (identifiants GeoService)                    | Login + Mot de passe                 |
+| GLS           | Aucun compte requis (endpoint public non officiel)                           | Pays GLS (ex. FR, DE, BE...)         |
 
 Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification. Le détail des étapes pour obtenir chaque identifiant est ci-dessous.
 
@@ -87,6 +88,13 @@ Comme Mondial Relay, DPD n'a pas de portail développeur en libre-service : l'ac
 2. Vous recevrez un **login** et un **mot de passe** : ce sont les valeurs attendues par l'intégration (*Identifiant DPD* / *Mot de passe DPD*).
 3. N'ayant pas d'environnement de test public, la validation se fait directement contre vos identifiants réels — assurez-vous qu'ils sont corrects avant de les saisir pour éviter des erreurs d'authentification répétées.
 4. Le contrat GeoService n'étant pas documenté publiquement, `providers/dpd.py` est une implémentation best-effort (mêmes réserves que Mondial Relay) : signalez tout comportement inattendu observé avec de vrais identifiants pour affiner le mapping des statuts.
+
+### GLS
+
+Contrairement aux autres transporteurs, GLS ne fournit pas de portail développeur en libre-service utilisable sans contrat professionnel (MyGLS). L'intégration utilise donc l'API publique (non officielle) qui alimente le suivi de colis sur le site GLS, laquelle ne demande aucun identifiant.
+
+1. Choisissez simplement le **pays GLS** correspondant à votre expéditeur (ex. `FR` pour la France) dans le champ *Pays GLS* de l'intégration : c'est le seul réglage nécessaire, il fait partie de l'URL de l'API.
+2. Cette API n'étant ni documentée ni garantie par GLS (elle peut changer ou cesser de fonctionner sans préavis), `providers/gls.py` est une implémentation best-effort : signalez tout statut mal interprété ou toute panne observée en usage réel.
 
 ## Tester l'intégration en mode développement
 

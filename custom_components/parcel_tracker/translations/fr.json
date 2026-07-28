@@ -15,7 +15,8 @@
           "mondial_relay_private_key": "Clé privée Mondial Relay",
           "postnord_api_key": "Clé API PostNord",
           "dpd_login": "Identifiant DPD",
-          "dpd_password": "Mot de passe DPD"
+          "dpd_password": "Mot de passe DPD",
+          "gls_country": "Pays GLS"
         }
       },
       "reauth_confirm": {
@@ -32,7 +33,8 @@
           "mondial_relay_private_key": "Clé privée Mondial Relay",
           "postnord_api_key": "Clé API PostNord",
           "dpd_login": "Identifiant DPD",
-          "dpd_password": "Mot de passe DPD"
+          "dpd_password": "Mot de passe DPD",
+          "gls_country": "Pays GLS"
         }
       },
       "reconfigure": {
@@ -49,7 +51,8 @@
           "mondial_relay_private_key": "Clé privée Mondial Relay",
           "postnord_api_key": "Clé API PostNord",
           "dpd_login": "Identifiant DPD",
-          "dpd_password": "Mot de passe DPD"
+          "dpd_password": "Mot de passe DPD",
+          "gls_country": "Pays GLS"
         }
       }
     },

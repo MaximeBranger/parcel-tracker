@@ -18,6 +18,7 @@ CONF_MONDIAL_RELAY_PRIVATE_KEY = "mondial_relay_private_key"
 CONF_POSTNORD_API_KEY = "postnord_api_key"
 CONF_DPD_LOGIN = "dpd_login"
 CONF_DPD_PASSWORD = "dpd_password"
+CONF_GLS_COUNTRY = "gls_country"
 
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=15)
 
@@ -30,6 +31,7 @@ CARRIER_UPS = "ups"
 CARRIER_MONDIAL_RELAY = "mondial_relay"
 CARRIER_POSTNORD = "postnord"
 CARRIER_DPD = "dpd"
+CARRIER_GLS = "gls"
 
 ALL_CARRIERS = [
     CARRIER_LAPOSTE,
@@ -39,6 +41,7 @@ ALL_CARRIERS = [
     CARRIER_MONDIAL_RELAY,
     CARRIER_POSTNORD,
     CARRIER_DPD,
+    CARRIER_GLS,
 ]
 
 CARRIER_LABELS: dict[str, str] = {
@@ -49,6 +52,7 @@ CARRIER_LABELS: dict[str, str] = {
     CARRIER_MONDIAL_RELAY: "Mondial Relay",
     CARRIER_POSTNORD: "PostNord",
     CARRIER_DPD: "DPD",
+    CARRIER_GLS: "GLS",
 }
 
 # Parcel statuses, as listed in SPECIFICATIONS.md.

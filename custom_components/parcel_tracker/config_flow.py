@@ -21,6 +21,7 @@ from .const import (
     CONF_DPD_PASSWORD,
     CONF_FEDEX_CLIENT_ID,
     CONF_FEDEX_CLIENT_SECRET,
+    CONF_GLS_COUNTRY,
     CONF_MONDIAL_RELAY_LOGIN,
     CONF_MONDIAL_RELAY_PRIVATE_KEY,
     CONF_POSTNORD_API_KEY,
@@ -42,6 +43,27 @@ _PASSWORD_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
 )
 
+# Country groups served by GLS's public tracking endpoint (see providers/gls.py).
+# A leading empty option keeps the field genuinely optional, matching every
+# other carrier field's default="" (see is_carrier_configured in registry.py).
+_GLS_COUNTRIES = [
+    "AT", "BA", "BE", "BG", "CH", "CZ", "DE", "DK", "EE", "ES", "FI", "FR",
+    "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "NL", "PL", "PT", "RO",
+    "RS", "SI", "SK", "UA", "UK",
+]
+_GLS_COUNTRY_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value="", label=""),
+            *(
+                selector.SelectOptionDict(value=country, label=country)
+                for country in _GLS_COUNTRIES
+            ),
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
 # Every carrier's credentials are optional here; async_step_user requires at
 # least one to be filled in (see _async_validate_carriers). This lets a user
 # configure only the carriers they actually receive parcels from. Secret
@@ -61,6 +83,7 @@ CARRIER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_POSTNORD_API_KEY, default=""): _PASSWORD_SELECTOR,
         vol.Optional(CONF_DPD_LOGIN, default=""): str,
         vol.Optional(CONF_DPD_PASSWORD, default=""): _PASSWORD_SELECTOR,
+        vol.Optional(CONF_GLS_COUNTRY, default=""): _GLS_COUNTRY_SELECTOR,
     }
 )
 

@@ -10,6 +10,7 @@ from ..const import (
     CARRIER_DHL,
     CARRIER_DPD,
     CARRIER_FEDEX,
+    CARRIER_GLS,
     CARRIER_LAPOSTE,
     CARRIER_MONDIAL_RELAY,
     CARRIER_POSTNORD,
@@ -20,6 +21,7 @@ from ..const import (
     CONF_DPD_PASSWORD,
     CONF_FEDEX_CLIENT_ID,
     CONF_FEDEX_CLIENT_SECRET,
+    CONF_GLS_COUNTRY,
     CONF_MONDIAL_RELAY_LOGIN,
     CONF_MONDIAL_RELAY_PRIVATE_KEY,
     CONF_POSTNORD_API_KEY,
@@ -30,6 +32,7 @@ from .base import TrackingProvider
 from .dhl import DhlProvider
 from .dpd import DpdProvider
 from .fedex import FedExProvider
+from .gls import GlsProvider
 from .laposte import LaPosteProvider
 from .mondial_relay import MondialRelayProvider
 from .postnord import PostNordProvider
@@ -45,6 +48,7 @@ CARRIER_CONFIG_KEYS: dict[str, tuple[str, ...]] = {
     CARRIER_MONDIAL_RELAY: (CONF_MONDIAL_RELAY_LOGIN, CONF_MONDIAL_RELAY_PRIVATE_KEY),
     CARRIER_POSTNORD: (CONF_POSTNORD_API_KEY,),
     CARRIER_DPD: (CONF_DPD_LOGIN, CONF_DPD_PASSWORD),
+    CARRIER_GLS: (CONF_GLS_COUNTRY,),
 }
 
 _PROVIDER_CLASSES: dict[str, Callable[..., TrackingProvider]] = {
@@ -55,6 +59,7 @@ _PROVIDER_CLASSES: dict[str, Callable[..., TrackingProvider]] = {
     CARRIER_MONDIAL_RELAY: MondialRelayProvider,
     CARRIER_POSTNORD: PostNordProvider,
     CARRIER_DPD: DpdProvider,
+    CARRIER_GLS: GlsProvider,
 }
 
 
