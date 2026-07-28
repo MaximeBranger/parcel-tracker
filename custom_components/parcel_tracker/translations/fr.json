@@ -16,7 +16,8 @@
           "postnord_api_key": "Clé API PostNord",
           "dpd_login": "Identifiant DPD",
           "dpd_password": "Mot de passe DPD",
-          "gls_country": "Pays GLS"
+          "gls_client_id": "Identifiant client GLS",
+          "gls_client_secret": "Clé secrète client GLS"
         }
       },
       "reauth_confirm": {
@@ -34,7 +35,8 @@
           "postnord_api_key": "Clé API PostNord",
           "dpd_login": "Identifiant DPD",
           "dpd_password": "Mot de passe DPD",
-          "gls_country": "Pays GLS"
+          "gls_client_id": "Identifiant client GLS",
+          "gls_client_secret": "Clé secrète client GLS"
         }
       },
       "reconfigure": {
@@ -52,7 +54,8 @@
           "postnord_api_key": "Clé API PostNord",
           "dpd_login": "Identifiant DPD",
           "dpd_password": "Mot de passe DPD",
-          "gls_country": "Pays GLS"
+          "gls_client_id": "Identifiant client GLS",
+          "gls_client_secret": "Clé secrète client GLS"
         }
       }
     },

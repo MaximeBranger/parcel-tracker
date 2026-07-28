@@ -19,7 +19,7 @@ Via [HACS](https://hacs.xyz), en ajoutant ce dépôt comme dépôt personnalisé
 
 Lors de l'ajout de l'intégration, saisissez les identifiants développeur du ou des transporteurs que vous voulez suivre — tous sont optionnels, mais au moins un est requis. Vous pourrez en ajouter ou en corriger plus tard sans recréer l'intégration, via **Paramètres → Appareils et services → Parcel Tracker → Reconfigurer**.
 
-Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay et DPD). Ne les partagez pas et ne les commitez jamais dans un dépôt public. GLS ne demande aucun identifiant : voir la section dédiée ci-dessous.
+Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres identifiants directement chez le transporteur (comptes développeur gratuits, hors Mondial Relay et DPD). Ne les partagez pas et ne les commitez jamais dans un dépôt public.
 
 | Transporteur  | Où obtenir les identifiants                                                | Identifiants demandés               |
 |---------------|-----------------------------------------------------------------------------|--------------------------------------|
@@ -30,7 +30,7 @@ Aucune clé n'est fournie ou partagée par le projet : chacun crée ses propres 
 | Mondial Relay | Compte marchand Mondial Relay (identifiants webservice WSI2)                | Login (Enseigne) + Clé privée       |
 | PostNord      | [developer.postnord.com](https://developer.postnord.com) (compte gratuit)   | Clé API                              |
 | DPD           | Compte professionnel DPD Group (identifiants GeoService)                    | Login + Mot de passe                 |
-| GLS           | Aucun compte requis (endpoint public non officiel)                           | Pays GLS (ex. FR, DE, BE...)         |
+| GLS           | [dev-portal.gls-group.net](https://dev-portal.gls-group.net) (compte gratuit), produit « Track And Trace V1 » | Client ID + Client secret |
 
 Chaque colis suivi choisit ensuite son transporteur parmi ceux configurés, à l'ajout ou à la modification. Le détail des étapes pour obtenir chaque identifiant est ci-dessous.
 
@@ -91,10 +91,13 @@ Comme Mondial Relay, DPD n'a pas de portail développeur en libre-service : l'ac
 
 ### GLS
 
-Contrairement aux autres transporteurs, GLS ne fournit pas de portail développeur en libre-service utilisable sans contrat professionnel (MyGLS). L'intégration utilise donc l'API publique (non officielle) qui alimente le suivi de colis sur le site GLS, laquelle ne demande aucun identifiant.
+GLS dispose d'un vrai portail développeur en libre-service, contrairement à DPD et Mondial Relay — pas besoin d'un contrat professionnel MyGLS pour suivre des colis reçus.
 
-1. Choisissez simplement le **pays GLS** correspondant à votre expéditeur (ex. `FR` pour la France) dans le champ *Pays GLS* de l'intégration : c'est le seul réglage nécessaire, il fait partie de l'URL de l'API.
-2. Cette API n'étant ni documentée ni garantie par GLS (elle peut changer ou cesser de fonctionner sans préavis), `providers/gls.py` est une implémentation best-effort : signalez tout statut mal interprété ou toute panne observée en usage réel.
+1. Créez un compte gratuit sur [dev-portal.gls-group.net](https://dev-portal.gls-group.net).
+2. Créez une **App**, puis souscrivez-la au produit **Track And Trace V1**.
+3. Le **Client ID** et le **Client secret** générés pour l'app sont les valeurs attendues par l'intégration (*Identifiant client GLS* / *Clé secrète client GLS*). L'authentification se fait via OAuth2 (client_credentials) contre `https://api.gls-group.net/oauth2/v1/token`.
+4. GLS précise que ses environnements sandbox et production renvoient les mêmes données réelles — l'intégration n'utilise donc que l'URL de production. Un jeu de colis de test (préfixe `REF_...`) reste utilisable à tout moment pour vérifier que vos identifiants fonctionnent, y compris après la mise en production de vrais colis.
+5. Le statut renvoyé par GLS (`status`) est une énumération documentée et stable, contrairement à la plupart des autres transporteurs ici qui nécessitent de deviner des libellés en texte libre — `providers/gls.py` s'appuie directement dessus.
 
 ## Tester l'intégration en mode développement
 

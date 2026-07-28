@@ -1,20 +1,17 @@
-"""API client for GLS's public, unofficial parcel tracking endpoint.
+"""API client for GLS's official Track & Trace API v1.
 
-Unlike DPD and Mondial Relay, GLS's *official* tracking API (MyGLS) is also
-professional-contract-only and undocumented outside that contract. This
-provider instead calls the `rstt001` endpoint that GLS's own public tracking
-website uses (`https://api.gls-group.eu/app/service/open/rest/{country}/en/
-rstt001?match={tracking_number}`), which needs no credentials at all — only
-a country group code (e.g. `FR`, `DE`) selected at setup time, since that
-code is part of the URL path. It is not published as a stable, supported API
-by GLS: there is no SLA, no changelog and no guarantee it keeps working, so
-treat the field mapping below as a best-effort starting point to confirm
-against real tracking numbers, not a verified contract.
+Unlike DPD and Mondial Relay, this is a properly documented, self-service
+API: sign up at https://dev-portal.gls-group.net, register an App and
+subscribe it to "Track And Trace V1" to get a client_id/client_secret pair
+(see README). Authentication is standard OAuth2 client_credentials against
+Apigee. GLS's own OpenAPI spec states production and sandbox are identical
+and to always use production, so there is no separate sandbox base URL here.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 import aiohttp
@@ -27,121 +24,153 @@ from ..const import (
     STATUS_IN_TRANSIT,
     STATUS_INCIDENT,
     STATUS_OUT_FOR_DELIVERY,
-    STATUS_RETURNED_TO_SENDER,
     STATUS_TAKEN_IN_CHARGE,
 )
 from .base import (
     ParcelTrackerApiError,
+    ParcelTrackerAuthError,
     ParcelTrackerNotFoundError,
     TrackingProvider,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-API_URL = "https://api.gls-group.eu/app/service/open/rest/{country}/en/rstt001"
-PUBLIC_TRACKING_URL = (
-    "https://gls-group.eu/{country}/en/parcel-tracking?match={tracking_number}"
-)
+OAUTH_URL = "https://api.gls-group.net/oauth2/v1/token"
+TRACK_URL = "https://api.gls-group.net/track-and-trace-v1/tracking/simple/references/{reference}"
+PUBLIC_TRACKING_URL = "https://gls-group.com/GROUP/en/parcel-tracking?match={tracking_number}"
 
-LABEL_STATUS_MAP: dict[str, str] = {
-    "pris en charge": STATUS_TAKEN_IN_CHARGE,
-    "enlevé": STATUS_TAKEN_IN_CHARGE,
-    "collected": STATUS_TAKEN_IN_CHARGE,
-    "en cours de transport": STATUS_IN_TRANSIT,
-    "en transit": STATUS_IN_TRANSIT,
-    "in transit": STATUS_IN_TRANSIT,
-    "arrivé": STATUS_AT_SORTING_CENTER,
-    "arrived at the parcelshop": STATUS_AT_SORTING_CENTER,
-    "en cours de livraison": STATUS_OUT_FOR_DELIVERY,
-    "out for delivery": STATUS_OUT_FOR_DELIVERY,
-    "livré": STATUS_DELIVERED,
-    "delivered": STATUS_DELIVERED,
-    "anomalie": STATUS_INCIDENT,
-    "incident": STATUS_INCIDENT,
-    "retour": STATUS_RETURNED_TO_SENDER,
-    "returned": STATUS_RETURNED_TO_SENDER,
+# GLS's documented, always-live test parcel (see the Test Data Set table in
+# the Track And Trace V1 OpenAPI spec) — used to validate credentials
+# without depending on a real shipment.
+TEST_TRACKING_NUMBER = "REF_0000001"
+
+# Refresh the OAuth token a bit early to avoid racing its expiry mid-request.
+TOKEN_EXPIRY_MARGIN_SECONDS = 60
+
+# ParcelDTO.status is a documented, stable enum (unlike most other carriers
+# here, which require guessing at free-text event labels).
+STATUS_MAP: dict[str, str] = {
+    "PLANNEDPICKUP": STATUS_CREATED,
+    "PREADVICE": STATUS_CREATED,
+    "INPICKUP": STATUS_TAKEN_IN_CHARGE,
+    "NOTPICKEDUP": STATUS_INCIDENT,
+    "INTRANSIT": STATUS_IN_TRANSIT,
+    "INWAREHOUSE": STATUS_AT_SORTING_CENTER,
+    "INDELIVERY": STATUS_OUT_FOR_DELIVERY,
+    "DELIVEREDPS": STATUS_OUT_FOR_DELIVERY,
+    "DELIVERED": STATUS_DELIVERED,
+    "NOTDELIVERED": STATUS_INCIDENT,
+    "CANCELED": STATUS_INCIDENT,
 }
 
 
 class GlsProvider(TrackingProvider):
-    """Client for GLS's public (unofficial) `rstt001` tracking endpoint."""
+    """Client for GLS's official Track And Trace API v1."""
 
     carrier = CARRIER_GLS
 
-    def __init__(self, country: str, session: aiohttp.ClientSession) -> None:
-        self._country = country.upper()
+    def __init__(self, client_id: str, client_secret: str, session: aiohttp.ClientSession) -> None:
+        self._client_id = client_id
+        self._client_secret = client_secret
         self._session = session
+        self._token: str | None = None
+        self._token_expires_at: float = 0.0
 
     async def async_validate_credentials(self) -> None:
-        """Raise if the configured country code isn't accepted by the endpoint.
+        """Raise if the configured client_id/client_secret are rejected."""
+        await self.async_track(TEST_TRACKING_NUMBER)
 
-        There are no real credentials to check here, only the country group
-        code baked into the URL, so this just confirms the endpoint responds
-        for that country using a made-up tracking number.
-        """
-        try:
-            await self.async_track("00000000000")
-        except ParcelTrackerNotFoundError:
-            return
+    async def _async_get_token(self) -> str:
+        """Return a cached OAuth token, requesting a new one once expired."""
+        if self._token and time.monotonic() < self._token_expires_at:
+            return self._token
+
+        async with self._session.post(
+            OAUTH_URL,
+            data={
+                "grant_type": "client_credentials",
+                "client_id": self._client_id,
+                "client_secret": self._client_secret,
+            },
+        ) as response:
+            if response.status in (400, 401):
+                raise ParcelTrackerAuthError("Invalid GLS client_id/client_secret")
+            if response.status != 200:
+                raise ParcelTrackerApiError(
+                    f"GLS OAuth endpoint returned HTTP {response.status}"
+                )
+            payload = await response.json(content_type=None)
+
+        token = payload.get("access_token")
+        if not token:
+            raise ParcelTrackerAuthError("Invalid GLS client_id/client_secret")
+
+        self._token = token
+        self._token_expires_at = time.monotonic() + max(
+            payload.get("expires_in", 0) - TOKEN_EXPIRY_MARGIN_SECONDS, 0
+        )
+        return token
 
     async def async_track(self, tracking_number: str) -> dict[str, Any]:
         """Fetch and normalize the tracking status for a single parcel."""
+        token = await self._async_get_token()
+
         async with self._session.get(
-            API_URL.format(country=self._country),
-            params={"match": tracking_number},
+            TRACK_URL.format(reference=tracking_number),
+            headers={"Authorization": f"Bearer {token}"},
         ) as response:
+            if response.status == 401:
+                # A cached token can also expire server-side between calls.
+                self._token = None
+                raise ParcelTrackerAuthError("Invalid GLS client_id/client_secret")
+            if response.status == 404:
+                raise ParcelTrackerNotFoundError(f"Unknown tracking number: {tracking_number}")
             if response.status != 200:
                 raise ParcelTrackerApiError(f"GLS API returned HTTP {response.status}")
             payload = await response.json(content_type=None)
 
-        shipments = payload.get("tuStatus") or []
-        if not shipments:
+        parcels = payload.get("parcels") or []
+        parcel = next((p for p in parcels if not p.get("errorCode")), None)
+        if parcel is None:
             raise ParcelTrackerNotFoundError(f"Unknown tracking number: {tracking_number}")
 
-        return self._normalize(tracking_number, shipments[0])
+        return self._normalize(tracking_number, parcel)
 
-    def _normalize(self, tracking_number: str, shipment: dict[str, Any]) -> dict[str, Any]:
-        """Turn a raw `tuStatus[0]` object into our internal parcel fields."""
+    def _normalize(self, tracking_number: str, parcel: dict[str, Any]) -> dict[str, Any]:
+        """Turn a raw `parcels[]` entry into our internal parcel fields."""
         history = sorted(
             (
                 {
-                    "date": self._combine_date_time(event.get("date"), event.get("time")),
-                    "label": event.get("evtDscr"),
-                    "location": event.get("location"),
+                    "date": event.get("eventDateTime"),
+                    "label": event.get("description"),
+                    "location": self._format_location(event),
                 }
-                for event in shipment.get("history") or []
-                if event.get("date")
+                for event in parcel.get("events") or []
+                if event.get("eventDateTime")
             ),
-            key=lambda item: item["date"] or "",
+            key=lambda item: item["date"],
         )
         last_event = history[-1] if history else None
 
         return {
-            "status": self._status_from_history(last_event),
+            "status": self._status_from_parcel(parcel),
             "history": history,
-            "estimated_delivery": shipment.get("estDlvrDate"),
+            "estimated_delivery": None,
             "last_location": last_event["location"] if last_event else None,
-            "last_update": last_event["date"] if last_event else None,
-            "tracking_url": PUBLIC_TRACKING_URL.format(
-                country=self._country.lower(), tracking_number=tracking_number
-            ),
+            "last_update": last_event["date"] if last_event else parcel.get("statusDateTime"),
+            "tracking_url": PUBLIC_TRACKING_URL.format(tracking_number=tracking_number),
         }
 
     @staticmethod
-    def _combine_date_time(date: str | None, time_: str | None) -> str | None:
-        if not date:
-            return None
-        return f"{date} {time_}" if time_ else date
+    def _format_location(event: dict[str, Any]) -> str | None:
+        parts = [event.get("city"), event.get("country")]
+        return ", ".join(part for part in parts if part) or None
 
     @classmethod
-    def _status_from_history(cls, last_event: dict[str, Any] | None) -> str:
-        if not last_event:
-            return STATUS_CREATED
+    def _status_from_parcel(cls, parcel: dict[str, Any]) -> str:
+        status = (parcel.get("status") or "").strip().upper()
+        if status in STATUS_MAP:
+            return STATUS_MAP[status]
 
-        label = (last_event.get("label") or "").strip().lower()
-        for known_label, status in LABEL_STATUS_MAP.items():
-            if known_label in label:
-                return status
-
-        _LOGGER.debug("Unrecognized GLS label %r, defaulting to in_transit", label)
+        _LOGGER.debug("Unrecognized GLS status %r, defaulting to in_transit", status)
         return STATUS_IN_TRANSIT

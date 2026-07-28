@@ -18,7 +18,8 @@ CONF_MONDIAL_RELAY_PRIVATE_KEY = "mondial_relay_private_key"
 CONF_POSTNORD_API_KEY = "postnord_api_key"
 CONF_DPD_LOGIN = "dpd_login"
 CONF_DPD_PASSWORD = "dpd_password"
-CONF_GLS_COUNTRY = "gls_country"
+CONF_GLS_CLIENT_ID = "gls_client_id"
+CONF_GLS_CLIENT_SECRET = "gls_client_secret"
 
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=15)
 

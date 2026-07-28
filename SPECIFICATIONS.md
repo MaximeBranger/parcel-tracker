@@ -101,19 +101,19 @@ TrackingProvider
     ├── Mondial Relay    (webservice WSI2, login + clé privée signée)
     ├── PostNord         (Track & Trace API v5, clé API)
     ├── DPD              (GeoService, login + mot de passe pro)
-    └── GLS              (endpoint public non officiel, pays uniquement)
+    └── GLS              (Track And Trace API v1, OAuth2 client_credentials)
 ```
 
 Support (variable selon les données exposées par chaque API) :
 
 * Statut courant
 * Historique des événements
-* Date de livraison estimée (non exposée par Mondial Relay au MVP)
+* Date de livraison estimée (non exposée par Mondial Relay ni GLS au MVP)
 * Localisation (si disponible)
 
 Comme Mondial Relay, DPD n'a pas de portail développeur en libre-service : les identifiants (login + mot de passe) ne sont délivrés qu'aux expéditeurs sous contrat professionnel DPD Group, et le contrat GeoService suivi ici (`providers/dpd.py`) est une reconstitution best-effort à confirmer avec de vrais identifiants, pas une spec vérifiée.
 
-GLS n'a pas non plus de portail développeur en libre-service (son API officielle MyGLS est réservée aux comptes professionnels sous contrat). `providers/gls.py` utilise à la place l'API publique non documentée qui alimente le suivi de colis du site GLS : elle ne demande aucun identifiant, seulement un code pays (partie de l'URL), mais n'est ni garantie ni stable dans le temps.
+Contrairement à DPD et Mondial Relay, GLS fournit un vrai portail développeur en libre-service ([dev-portal.gls-group.net](https://dev-portal.gls-group.net)) avec une API « Track And Trace V1 » documentée par une spec OpenAPI officielle et un statut (`status`) en énumération stable — pas de contrat professionnel MyGLS requis pour du suivi côté destinataire, et pas de mapping de libellés texte à deviner comme pour la plupart des autres transporteurs ici.
 
 Les autres transporteurs (Amazon Logistics…) restent hors périmètre. L'architecture provider (voir plus bas) reste conçue pour les accueillir sans refonte.
 
@@ -147,7 +147,7 @@ Création de la config entry
 | Mondial Relay   | Login (Enseigne) + Clé privée                      | Hash MD5 signé (webservice WSI2)  |
 | PostNord        | Clé API                                            | Clé API en paramètre de requête   |
 | DPD             | Login + mot de passe (compte pro DPD Group)        | Token de session (GeoService)     |
-| GLS             | Code pays (ex. FR, DE)                             | Aucune (endpoint public)          |
+| GLS             | Client ID + Client secret                          | OAuth2 client_credentials         |
 
 Aucune clé n'est fournie ou partagée par le projet — cohérent avec « sans cloud propriétaire » : pas de quota mutualisé entre utilisateurs, pas de dépendance à un service tiers géré par le projet. Les identifiants d'un ou plusieurs transporteurs peuvent être ajoutés ou corrigés après la création de l'intégration via **Reconfigurer** (Paramètres → Appareils et services → Parcel Tracker).
 

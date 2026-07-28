@@ -16,7 +16,8 @@
           "postnord_api_key": "PostNord API key",
           "dpd_login": "DPD login",
           "dpd_password": "DPD password",
-          "gls_country": "GLS country"
+          "gls_client_id": "GLS client ID",
+          "gls_client_secret": "GLS client secret"
         }
       },
       "reauth_confirm": {
@@ -34,7 +35,8 @@
           "postnord_api_key": "PostNord API key",
           "dpd_login": "DPD login",
           "dpd_password": "DPD password",
-          "gls_country": "GLS country"
+          "gls_client_id": "GLS client ID",
+          "gls_client_secret": "GLS client secret"
         }
       },
       "reconfigure": {
@@ -52,7 +54,8 @@
           "postnord_api_key": "PostNord API key",
           "dpd_login": "DPD login",
           "dpd_password": "DPD password",
-          "gls_country": "GLS country"
+          "gls_client_id": "GLS client ID",
+          "gls_client_secret": "GLS client secret"
         }
       }
     },
