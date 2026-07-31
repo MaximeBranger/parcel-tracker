@@ -123,6 +123,9 @@
         "title": "Supprimer {parcel_name} ?",
         "description": "Le colis et son entité seront définitivement supprimés. Cette action est irréversible."
       }
+    },
+    "error": {
+      "duplicate_tracking_number": "Un colis avec ce numéro de suivi est déjà suivi"
     }
   },
   "entity": {

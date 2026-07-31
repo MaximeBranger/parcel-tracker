@@ -123,6 +123,9 @@
         "title": "Remove {parcel_name}?",
         "description": "This permanently deletes the parcel and its entity. This cannot be undone."
       }
+    },
+    "error": {
+      "duplicate_tracking_number": "A parcel with this tracking number is already tracked"
     }
   },
   "entity": {

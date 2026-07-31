@@ -30,7 +30,7 @@ from .const import (
     CONF_UPS_CLIENT_SECRET,
     DOMAIN,
 )
-from .coordinator import ParcelNotFoundError, ParcelTrackerCoordinator
+from .coordinator import DuplicateParcelError, ParcelNotFoundError, ParcelTrackerCoordinator
 from .notify_targets import list_notify_targets
 from .providers import (
     CARRIER_CONFIG_KEYS,
@@ -246,23 +246,32 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Track a new parcel."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            await self._coordinator.async_add_parcel(
-                tracking_number=user_input["tracking_number"],
-                carrier=user_input["carrier"],
-                name=user_input["name"],
-                notes=user_input["notes"],
-                notify_target=user_input["notify_target"],
-            )
-            return await self.async_step_init()
+            try:
+                await self._coordinator.async_add_parcel(
+                    tracking_number=user_input["tracking_number"],
+                    carrier=user_input["carrier"],
+                    name=user_input["name"],
+                    notes=user_input["notes"],
+                    notify_target=user_input["notify_target"],
+                )
+            except DuplicateParcelError:
+                errors["tracking_number"] = "duplicate_tracking_number"
+            else:
+                return await self.async_step_init()
 
         return self.async_show_form(
             step_id="add_parcel",
-            data_schema=_parcel_fields_schema(
-                self._configured_carriers,
-                default_carrier=self._configured_carriers[0],
-                notify_options=_notify_target_options(self.hass),
+            data_schema=self.add_suggested_values_to_schema(
+                _parcel_fields_schema(
+                    self._configured_carriers,
+                    default_carrier=self._configured_carriers[0],
+                    notify_options=_notify_target_options(self.hass),
+                ),
+                user_input,
             ),
+            errors=errors,
         )
 
     async def async_step_select_parcel(
@@ -316,16 +325,21 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
         except ParcelNotFoundError:
             return await self.async_step_init()
 
+        errors: dict[str, str] = {}
         if user_input is not None:
-            await self._coordinator.async_update_parcel(
-                parcel.id,
-                tracking_number=user_input["tracking_number"],
-                carrier=user_input["carrier"],
-                name=user_input["name"],
-                notes=user_input["notes"],
-                notify_target=user_input["notify_target"],
-            )
-            return await self.async_step_init()
+            try:
+                await self._coordinator.async_update_parcel(
+                    parcel.id,
+                    tracking_number=user_input["tracking_number"],
+                    carrier=user_input["carrier"],
+                    name=user_input["name"],
+                    notes=user_input["notes"],
+                    notify_target=user_input["notify_target"],
+                )
+            except DuplicateParcelError:
+                errors["tracking_number"] = "duplicate_tracking_number"
+            else:
+                return await self.async_step_init()
 
         # Always offer the parcel's current carrier, even if its credentials
         # were since removed from the entry, so editing it doesn't force an
@@ -342,7 +356,8 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
                     default_carrier=parcel.carrier,
                     notify_options=_notify_target_options(self.hass),
                 ),
-                {
+                user_input
+                or {
                     "tracking_number": parcel.tracking_number,
                     "carrier": parcel.carrier,
                     "name": parcel.name,
@@ -350,6 +365,7 @@ class ParcelTrackerOptionsFlow(config_entries.OptionsFlow):
                     "notify_target": parcel.notify_target,
                 },
             ),
+            errors=errors,
             description_placeholders={"parcel_name": parcel.display_name},
         )
 

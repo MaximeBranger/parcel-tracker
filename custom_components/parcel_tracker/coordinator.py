@@ -44,6 +44,10 @@ class ParcelNotFoundError(Exception):
     """Raised when a service call references an unknown parcel_id."""
 
 
+class DuplicateParcelError(HomeAssistantError):
+    """Raised when a tracking number is already tracked by an active parcel."""
+
+
 class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
     """Coordinate updates for all tracked, non-archived parcels.
 
@@ -229,6 +233,7 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         notify_target: str = "",
     ) -> Parcel:
         """Add a new parcel and start tracking it immediately."""
+        self._raise_if_duplicate(tracking_number)
         parcel = Parcel(
             tracking_number=tracking_number,
             carrier=carrier,
@@ -279,6 +284,8 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
         "Identité de l'entité").
         """
         parcel = self._get_parcel(parcel_id)
+        if tracking_number is not None and tracking_number != parcel.tracking_number:
+            self._raise_if_duplicate(tracking_number, exclude_id=parcel.id)
         needs_refresh = (
             tracking_number is not None and tracking_number != parcel.tracking_number
         ) or (carrier is not None and carrier != parcel.carrier)
@@ -342,6 +349,23 @@ class ParcelTrackerCoordinator(DataUpdateCoordinator[dict[str, Parcel]]):
             return self._parcels[parcel_id]
         except KeyError as err:
             raise ParcelNotFoundError(f"Unknown parcel_id: {parcel_id}") from err
+
+    def _raise_if_duplicate(self, tracking_number: str, *, exclude_id: str | None = None) -> None:
+        """Reject a tracking number already tracked by another active parcel.
+
+        Archived parcels don't count: their tracking number is free to
+        reuse. Without this, a carrier lookup failure (e.g. a rejected
+        `add` call) still leaves an active parcel behind, so retrying from
+        the card silently created duplicates showing the same error.
+        """
+        normalized = tracking_number.strip().casefold()
+        for parcel in self._parcels.values():
+            if parcel.id == exclude_id or parcel.archived:
+                continue
+            if parcel.tracking_number.strip().casefold() == normalized:
+                raise DuplicateParcelError(
+                    f"Un colis avec le numéro de suivi « {tracking_number} » est déjà suivi."
+                )
 
     def _async_remove_registry_entry(self, parcel_id: str) -> None:
         registry = er.async_get(self.hass)
